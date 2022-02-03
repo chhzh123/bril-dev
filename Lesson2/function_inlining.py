@@ -34,11 +34,14 @@ def inline_function(prg):
             if "dest" in call_op:
                 # traverse all the instructions in callee and find return op
                 for instr in callee["instrs"]:
-                    if instr["op"] == "ret":
+                    if "op" in instr and instr["op"] == "ret":
                         callee_args_map[instr["args"][0]] = call_op["dest"] # * not sure why enable multiple returns
 
             # replace all the arguments to global variable
             for callee_instr in callee["instrs"]:
+                # prevent nested function call
+                if "op" in callee_instr and callee_instr["op"] == "call":
+                    raise RuntimeError("Not support nested function call!")
                 # check operands (inputs)
                 if "args" in callee_instr:
                     new_args = []
@@ -91,6 +94,5 @@ if __name__ == "__main__":
             program = json.load(infile)
     else:
         program = json.loads(''.join(sys.stdin.readlines())) # already in json format
-    print(program)
     new_program = inline_function(program)
     print(json.dumps(new_program, indent=2))
