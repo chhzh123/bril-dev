@@ -31,11 +31,12 @@ def inline_function(prg):
             else:
                 callee_args_map = {}
             # also add return value's mapping
+            callee_ret_map = {}
             if "dest" in call_op:
                 # traverse all the instructions in callee and find return op
                 for instr in callee["instrs"]:
                     if "op" in instr and instr["op"] == "ret":
-                        callee_args_map[instr["args"][0]] = call_op["dest"] # * not sure why enable multiple returns
+                        callee_ret_map[instr["args"][0]] = call_op["dest"] # * not sure why enable multiple returns
 
             # replace all the arguments to global variable
             for callee_instr in callee["instrs"]:
@@ -48,6 +49,8 @@ def inline_function(prg):
                     for arg in callee_instr["args"]:
                         if arg in callee_args_map:
                             new_args.append(callee_args_map[arg])
+                        elif arg in callee_ret_map:
+                            new_args.append(callee_ret_map[arg])
                         else:
                             new_args.append(arg)
                     # reset operands
@@ -55,8 +58,8 @@ def inline_function(prg):
                 # check returns (outputs)
                 if "dest" in callee_instr:
                     dest = callee_instr["dest"]
-                    if dest in callee_args_map:
-                        callee_instr["dest"] = callee_args_map[dest]
+                    if dest in callee_ret_map:
+                        callee_instr["dest"] = callee_ret_map[dest]
                     else:
                         # avoid function naming conflict
                         original_name = callee_instr["dest"]
