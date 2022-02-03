@@ -22,8 +22,11 @@ def inline_function(prg):
             callee = func_map[instr["funcs"][0]] # * not sure why here is func's'
 
             # construct local var in function -> global var mapping
-            global_vars = instr["args"]
-            callee_args_map = {arg["name"]: global_vars[idx] for idx, arg in enumerate(callee["args"])}
+            if "args" in instr:
+                global_vars = instr["args"]
+                callee_args_map = {arg["name"]: global_vars[idx] for idx, arg in enumerate(callee["args"])}
+            else:
+                callee_args_map = {}
             # also add return value's mapping
             if "dest" in call_op:
                 # traverse all the instructions in callee and find return op
@@ -33,7 +36,7 @@ def inline_function(prg):
 
             # replace all the arguments to global variable
             for callee_instr in callee["instrs"]:
-                # check operands
+                # check operands (inputs)
                 if "args" in callee_instr:
                     new_args = []
                     for arg in callee_instr["args"]:
@@ -43,11 +46,16 @@ def inline_function(prg):
                             new_args.append(arg)
                     # reset operands
                     callee_instr["args"] = new_args
-                # check returns
+                # check returns (outputs)
                 if "dest" in callee_instr:
                     dest = callee_instr["dest"]
                     if dest in callee_args_map:
                         callee_instr["dest"] = callee_args_map[dest]
+                    else:
+                        # avoid function naming conflict
+                        original_name = callee_instr["dest"]
+                        callee_instr["dest"] = callee_instr["dest"] + "_fvar"
+                        callee_args_map[original_name] = callee_instr["dest"]
                 # no need to add return function
                 if callee_instr["op"] == "ret":
                     pass
@@ -61,7 +69,8 @@ def inline_function(prg):
     new_prg = {}
     new_main = {}
     new_main["name"] = "main"
-    new_main["args"] = func_map["main"]["args"]
+    if "args" in func_map["main"]:
+        new_main["args"] = func_map["main"]["args"]
     new_main["instrs"] = new_instrs
     new_prg["functions"] = [new_main]
     return new_prg
