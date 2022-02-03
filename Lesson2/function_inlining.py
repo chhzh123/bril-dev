@@ -15,11 +15,14 @@ def inline_function(prg):
     # traverse the function one by one and see if there is function call
     # should work recursively
     new_instrs = []
+    fid = -1
     for instr in top_func["instrs"]:
-        if instr["op"] == "call":
+        # label does not have "op" key
+        if "op" in instr and instr["op"] == "call":
             call_op = instr
             # find the callee function
             callee = func_map[instr["funcs"][0]] # * not sure why here is func's'
+            fid += 1
 
             # construct local var in function -> global var mapping
             if "args" in instr:
@@ -54,15 +57,22 @@ def inline_function(prg):
                     else:
                         # avoid function naming conflict
                         original_name = callee_instr["dest"]
-                        callee_instr["dest"] = callee_instr["dest"] + "_fvar"
+                        callee_instr["dest"] = callee_instr["dest"] + "_fvar{}".format(fid)
                         callee_args_map[original_name] = callee_instr["dest"]
+                # rename possible conflicting scopes
+                if "label" in callee_instr:
+                    callee_instr["label"] = callee_instr["label"] + "_flabel{}".format(fid)
+                if "labels" in callee_instr:
+                    new_labels = []
+                    for label in callee_instr["labels"]:
+                        new_labels.append(label + "_flabel{}".format(fid))
+                    callee_instr["labels"] = new_labels
                 # no need to add return function
-                if callee_instr["op"] == "ret":
+                if "op" in callee_instr and callee_instr["op"] == "ret":
                     pass
                 else:
                     new_instrs.append(callee_instr)
             # after replace do nesting
-            # rename possible conflicting scopes
         else:
             new_instrs.append(instr)
     # create new main function
@@ -76,7 +86,11 @@ def inline_function(prg):
     return new_prg
 
 if __name__ == "__main__":
-    with open(sys.argv[1], "r") as infile:
-        program = json.load(infile)
+    if len(sys.argv) > 1:
+        with open(sys.argv[1], "r") as infile:
+            program = json.load(infile)
+    else:
+        program = json.loads(''.join(sys.stdin.readlines())) # already in json format
+    print(program)
     new_program = inline_function(program)
     print(json.dumps(new_program, indent=2))
