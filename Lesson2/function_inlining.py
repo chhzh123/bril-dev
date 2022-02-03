@@ -12,8 +12,8 @@ def inline_function(prg):
     for func in funcs:
         func_map[func["name"]] = func
     top_func = func_map["main"]
+
     # traverse the function one by one and see if there is function call
-    # should work recursively
     new_instrs = []
     fid = -1
     for instr in top_func["instrs"]:
