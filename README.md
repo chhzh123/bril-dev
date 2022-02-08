@@ -2,8 +2,14 @@
 
 This repository contains experimental tools of the [Bril](https://github.com/sampsyo/bril) compiler for Cornell [CS 6120](https://www.cs.cornell.edu/courses/cs6120/2022sp).
 
-Following shows the installation commands that can be used.
 
+## Lessons
+* Lesson 1: Intro & Paper Claiming
+* Lesson 2: [Bril](Lesson2)
+* Lesson 3: [DCE/LVN](Lesson3)
+
+
+## Build
 ```bash
 git clone https://github.com/sampsyo/bril.git
 cd bril-ts
@@ -20,4 +26,12 @@ flit install --symlink
 
 pip install turnt
 make test
+```
+
+## Run
+```bash
+bril2json < test.bril
+python3 xxx.py # some passes
+brili ... # generated json files
+bril2txt ... # check the IR code
 ```

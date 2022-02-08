@@ -1,4 +1,4 @@
-# Lesson 2
+# Lesson 2 - Bril
 
 ## Benchmark
 I implemented a graph format converter as a benchmark in this [PR](https://github.com/sampsyo/bril/pull/146). It transforms a graph in [adjacency matrix](https://en.wikipedia.org/wiki/Adjacency_matrix) format (dense representation) to [Compressed Sparse Row (CSR)](https://en.wikipedia.org/wiki/Sparse_matrix) format (sparse representation). It intensively uses the memory facility of Bril and mimics the behavior of multi-dimensional arrays.
@@ -77,6 +77,8 @@ A good practice is to first check if the key of an operation exists. For example
 
 
 ### Discussions
+Please find detailed discussions on the [course webpage](https://github.com/sampsyo/cs6120/discussions/263#discussioncomment-2101320).
+
 1. I am not sure why for some operations in Bril, they have a parameter list to store the item. For example, the `call` operation has a field called `"funcs"` and takes in a list of functions, but I have no idea how this can work for multiple functions. Another one is `ret`, which also has a `"args"` list. If the Bril IR is in SSA form, then I think it cannot have multiple return values?
 
 2. Declaration and assignment. I am not sure why the following code can pass the compilation and execute. As I know, Bril has no type casting operators, so how can this be doable conversing from `int` to `bool` and back to `int`. Are there any implicit type casting rules like those in C/C++? Also, does `x: bool = const 0;` mean *declaring* a new variable or *assigning* a new value to the original variable? The vague semantics makes transformation pass hard to be done correctly in some ways.
