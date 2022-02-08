@@ -27,9 +27,23 @@ def dce(prg):
                 pass
             else:
                 new_instrs.append(instr)
-        func["instrs"] = new_instrs
+        func["instrs"] = new_instrs.copy()
+        # reassignment
+        last_def = {} # var->instr
+        for instr in func["instrs"]:
+            # check for uses
+            if "args" in instr:
+                for arg in instr["args"]:
+                    last_def.pop(arg, None)
+            # check for defs
+            if "dest" in instr:
+                if instr["dest"] in last_def:
+                    new_instrs.remove(last_def[instr["dest"]])
+                last_def[instr["dest"]] = instr
+        func["instrs"] = new_instrs.copy()
 
-    runOnFunction(top_func)
+    for func in funcs:
+        runOnFunction(func)
     return prg
 
 if __name__ == "__main__":
