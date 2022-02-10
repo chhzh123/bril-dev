@@ -62,7 +62,7 @@ def dce(prg):
         # traverse the CFG according to control flow
         block = blocks[0]
         while True:
-            new_instrs += runOnBlock(block)
+            new_instrs += block
             if block[-1]["op"] == "jmp":
                 label = block[-1]["labels"][0]
                 block = find_block(blocks, label)
@@ -70,7 +70,7 @@ def dce(prg):
                     break
             else:
                 break
-        func["instrs"] = new_instrs
+        func["instrs"] = runOnBlock(new_instrs)
     return prg
 
 if __name__ == "__main__":

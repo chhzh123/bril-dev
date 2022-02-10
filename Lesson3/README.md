@@ -22,12 +22,12 @@ The following shows the test status of the benchmarks from `examples/test/tdce`.
 | :--:              | :--:   | :--: |
 | `combo`             | :heavy_check_mark: |
 | `diamond`           | :x:    | Control flow (br) |
-| `double-pass`       | :heavy_check_mark: | Same as `double-pass`, Original test incorrect |
+| `double-pass`       | :heavy_check_mark: | Same as `double-pass`, original test incorrect |
 | `double`            | :heavy_check_mark: |
 | `reassign-dkp`      | :heavy_check_mark: |
-| `reassign`          | :heavy_check_mark: | Same as `reassign-dkp`, Original test incorrect |
+| `reassign`          | :heavy_check_mark: | Same as `reassign-dkp`, original test incorrect |
 | `simple`            | :heavy_check_mark: |
-| `skipped`           | :x:     | Control flow (jmp) |
+| `skipped`           | :heavy_check_mark: | Control flow (jmp), remove dead blocks |
 
 
 ## Local Variable Numbering (LVN)
