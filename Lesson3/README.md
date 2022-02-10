@@ -1,5 +1,13 @@
 # Lesson 3 - DCE/LVN
 
+<!-- In your summary on the GitHub Discussions thread, briefly write up the evidence you have that your LVN implementation is correct and actually optimizes programs.
+For bonus “points,” extend your LVN implementation to optimize the trickier examples given in class. -->
+
+Please follow the instructions below to run the program.
+```bash
+bril2json < test/lvn/complex.bril | python3 lvn.py | python3 dce.py | bril2txt
+```
+
 ## Dead Code Elimination (DCE)
 
 DCE is relatively easy to implement, just following the pseudocode would be fine:
@@ -52,3 +60,46 @@ The following shows the test status of the benchmarks from `examples/test/lvn`.
 | `redundant-dce`     | :heavy_check_mark: |
 | `redundant`         | :heavy_check_mark: |
 | `rename-fold`       | :heavy_check_mark: |
+
+
+## Correctness
+Apart from the above tests given in the bril repository, I also wrote additional test cases to test the correctness of my algorithms. The result of LVN is passed to DCE to do further optimization. All the cases are tested using `turnt`, including the trickier example given in class.
+
+Here I give another example to show how my passes work, and it should cover all the cases in LVN and DCE.
+```
+@main {                                        
+  x: int = const 14;                           
+  y: int = const 2;                            
+                                               
+  # constant propagation                       
+  div_xy: int = div x y;                       
+                                           # lvn
+  # copy propagation                       @main {
+  div_xy2: int = id div_xy;                  x: int = const 14;                        
+                                             y_new0: int = const 2;            # lvn + dce        
+  # dead code                                div_xy: int = const 7;            @main {
+  add_xy: int = add x y;                     div_xy2: int = div div_xy;          y_new1: int = const 8;
+                                             add_xy: int = const 16;             print y_new1;
+  # common subexpression elimination         mul_xy: int = const 49;             y: int = const 10;
+  mul_xy: int = mul div_xy div_xy2;          y_new1: int = const 8;              print y;
+                                             print y_new1;                       sub_xy: int = const -39;
+  # reassignment                             y: int = const 10;                  print sub_xy;
+  y: int = const 8;                          print y;                            equality: bool = const true;
+  print y;                                   sub_xy: int = const -39;            print equality;
+                                             print sub_xy;                     }
+  # double reassignment                      result: int = const -39;                  
+  y: int = const 10;                         equality: bool = const true;              
+  print y;                                   print equality;                           
+                                           }
+  # further propagation                        
+  sub_xy: int = sub y mul_xy;                  
+  print sub_xy;                                
+                                               
+  # constant folding                           
+  result: int = const -39;                     
+  equality: bool = eq sub_xy result;           
+  print equality;                              
+}
+```
+
+Using this testbench, I also found a subtle mistake that I should use `//` to implement integer division and `/` to implement floating-point division. We do not record data types in the LVN table, but it indeed matters when doing constant folding.
