@@ -24,6 +24,18 @@ The following shows the test status of the benchmarks from `examples/test/tdce`.
 
 ## Local Variable Numbering (LVN)
 
+LVN is much tricky somehow and requires careful considerations. I use a list to store the LVN table. Each element is a tuple containing the value and the canonical name. This takes O(1) to access a row by index, but takes O(n) in the worst case to find a value. I am not sure if there is data structure can enjoy both of the world that seaching by index and searching by key can both achieve constant time (if not storing redundant data). It would be helpful to reduce the searching overheads if the program has lots of instructions.
+
+Based on LVN, I implemented all the three (1) common subexpression elimination, (2) copy propagation, and (3) constant propagation/folding. (1) only needs to follow the LVN algorithm and checks if the value is computed before, and then replace it. (2) is also straightforward that needs to find the initial definition of the variable. (3) is a little bit tricky. What I do is writing specific computation rules for each arthimetic operations, but it is very inconvenient and the if-else cases take almost 1/3 part of the code. Also, to make constants pass the program from top to bottom, I iterate the algorithm several times till the program does changed just like what we did in DCE.
+
+The attached [pesudocode](https://www.cs.cornell.edu/courses/cs6120/2022sp/lesson/3/) is actually a simplified version of the LVN algorithm. In my implementation, I pay more attention to the following things:
+<!-- For `add` and `mul` I directly sorted the arguments, but be careful that `sub` does not have the communitivity. -->
+* Function arguments should be also added to the LVN table before traversing the instructions.
+* For constructing fresh variable name, I recorded a global counter and attached that number behind the variable names in order to prevent further name conflicts. For example, the original variable name is `x`, then the new name will be `x_new0`.
+* If the instructions will be overwritten later, we should also not only update the argument names, but also update the latter instructions (before next definition) that contain this variable. Otherwise, we may not find the requested variable in the `var2num` dict.
+
+The following shows the test status of the benchmarks from `examples/test/lvn`.
+
 | Benchmark         | Status | Comments |
 | :--:              | :--:   | :--:     |
 | `clobber-fold`      | :heavy_check_mark: |
