@@ -175,7 +175,8 @@ def lvn(prg):
                             elif op == "mul":
                                 result = (constants[0] * constants[1])
                             elif op == "div":
-                                result = (constants[0] / constants[1])
+                                if constants[1] != 0: # avoid divided by 0
+                                    result = (constants[0] / constants[1])
                         # change operation
                         if result != None:
                             instr["op"] = "const"
