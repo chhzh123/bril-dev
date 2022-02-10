@@ -1,5 +1,6 @@
 import sys
 import json
+from bb import form_blocks
 
 def dce(prg):
     """Dead Code Elimination (DCE)
@@ -11,28 +12,27 @@ def dce(prg):
     func_map = {}
     for func in funcs:
         func_map[func["name"]] = func
-    top_func = func_map["main"]
 
-    def runOnFunction(func):
+    def runOnBlock(block_instrs):
         while True:
-            prev_size = len(func["instrs"])
+            prev_size = len(block_instrs)
             # find the used list
             used = set()
-            for instr in func["instrs"]:
+            for instr in block_instrs:
                 if "args" in instr:
                     for arg in instr["args"]:
                         used.add(arg)
             # traverse again to check whether those args are used
             new_instrs = []
-            for instr in func["instrs"]:
+            for instr in block_instrs:
                 if "dest" in instr and instr["dest"] not in used:
                     pass
                 else:
                     new_instrs.append(instr)
-            func["instrs"] = new_instrs.copy()
+            block_instrs = new_instrs.copy()
             # reassignment
             last_def = {} # var->instr
-            for instr in func["instrs"]:
+            for instr in block_instrs:
                 # check for uses
                 if "args" in instr:
                     for arg in instr["args"]:
@@ -42,13 +42,15 @@ def dce(prg):
                     if instr["dest"] in last_def:
                         new_instrs.remove(last_def[instr["dest"]])
                     last_def[instr["dest"]] = instr
-            func["instrs"] = new_instrs.copy()
-            curr_size = len(func["instrs"])
+            block_instrs = new_instrs.copy()
+            curr_size = len(block_instrs)
             if prev_size == curr_size:
                 break
+        return block_instrs
 
     for func in funcs:
-        runOnFunction(func)
+        for block in form_blocks(func["instrs"]):
+            func["instrs"] = runOnBlock(block)
     return prg
 
 if __name__ == "__main__":
