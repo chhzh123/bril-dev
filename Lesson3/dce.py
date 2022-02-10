@@ -2,6 +2,12 @@ import sys
 import json
 from bb import form_blocks
 
+def find_block(blocks, label):
+    for block in blocks:
+        if "label" in block[0] and block[0]["label"] == label:
+            return block
+    return None
+
 def dce(prg):
     """Dead Code Elimination (DCE)
     """
@@ -49,8 +55,22 @@ def dce(prg):
         return block_instrs
 
     for func in funcs:
+        blocks = []
         for block in form_blocks(func["instrs"]):
-            func["instrs"] = runOnBlock(block)
+            blocks.append(block)
+        new_instrs = []
+        # traverse the CFG according to control flow
+        block = blocks[0]
+        while True:
+            new_instrs += runOnBlock(block)
+            if block[-1]["op"] == "jmp":
+                label = block[-1]["labels"][0]
+                block = find_block(blocks, label)
+                if block == None:
+                    break
+            else:
+                break
+        func["instrs"] = new_instrs
     return prg
 
 if __name__ == "__main__":
