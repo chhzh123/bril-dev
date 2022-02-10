@@ -32,13 +32,16 @@ def lvn(prg):
             # print(i, instr)
             if "op" in instr:
                 # construct value
-                value = [instr["op"]]
+                value = []
                 if instr["op"] == "const":
                     value.append(instr["value"])
                 else: # suppose instr has args
                     for arg in instr["args"]:
                         value.append(var2index[arg]) # should be already defined
-                value = tuple(value)
+                    # commutivity -> canonicalize
+                    if instr["op"] in ["add", "mul"]:
+                        value.sort()
+                value = tuple([instr["op"]] + value)
                 # print("value", value)
 
                 # check if the value is in the table
