@@ -39,8 +39,6 @@ def lvn(prg):
                     var2index[arg] = len(lvn_table) - 1
 
             for i, instr in enumerate(func["instrs"]):
-                # print()
-                # print(i, instr)
                 if "op" in instr:
                     # construct value
                     if instr["op"] == "id":
@@ -58,16 +56,13 @@ def lvn(prg):
                             if instr["op"] in ["add", "mul"]:
                                 value.sort()
                         value = tuple([instr["op"]] + value)
-                    # print("value", value)
 
                     # check if the value is in the table
                     idx = find_val(lvn_table, value)
                     if idx != -1:
-                        # print("computed before")
                         # the value has been computed before; reuse it
                         num, var = idx, lvn_table[idx][1]
                         if instr["op"] == "id": # copy propagation
-                            # print("id instr", value)
                             # if the copied variable is a constant
                             instr["op"] = value[0]
                             instr["value"] = value[1]
@@ -76,7 +71,6 @@ def lvn(prg):
                             instr["args"] = [var]
                     else:
                         # A newly computed value
-                        # print("newly computed")
                         num = len(lvn_table)
                         if "dest" in instr:
                             dest = instr["dest"]
@@ -103,13 +97,11 @@ def lvn(prg):
                             else:
                                 pass
                             lvn_table.append((value, dest))
-                            # print(lvn_table)
 
                         # replace a with table[var2num[a]].var
                         if "args" in instr:
                             for arg_idx in range(len(instr["args"])):
                                 instr["args"][arg_idx] = lvn_table[var2index[instr["args"][arg_idx]]][1]
-                            # print("new", instr["args"])
                         
                             # constant folding
                             constants = []
@@ -187,7 +179,6 @@ def lvn(prg):
 
                     if "dest" in instr:
                         var2index[instr["dest"]] = num
-                    # print(var2index)
 
             if not is_prg_changed:
                 break
