@@ -16,12 +16,14 @@ DCE is relatively easy to implement, just following the pseudocode would be fine
 3. For the case of reassignment, first check the used list, and then check the definition list, and only retain the last definition.
 4. Remember to iterate the algorithm until it converges.
 
+I also added basic control flow support for DCE. Basically I just follow the control flow (`jmp` and `br`) and traverse those blocks from the root of CFG (depth-first search). If some blocks cannot be accessed, they will be removed. After removing dead blocks, I viewed the remaining blocks as a whole and did DCE. (This has limitations when the CFG has complex branches.)
+
 The following shows the test status of the benchmarks from `examples/test/tdce`.
 
 | Benchmark         | Status | Comments |
 | :--:              | :--:   | :--: |
 | `combo`             | :heavy_check_mark: |
-| `diamond`           | :x:    | Control flow (br) |
+| `diamond`           | :heavy_check_mark: | Control flow (br) |
 | `double-pass`       | :heavy_check_mark: | Same as `double-pass`, original test incorrect |
 | `double`            | :heavy_check_mark: |
 | `reassign-dkp`      | :heavy_check_mark: |
@@ -51,11 +53,11 @@ The following shows the test status of the benchmarks from `examples/test/lvn`.
 | `commute`           | :heavy_check_mark: |
 | `divide-by-zero`    | :heavy_check_mark: |
 | `fold-comparisons`  | :heavy_check_mark: | Original test incorrect |
-| `idchain-nonlocal`  | :x: | Control flow |
+| `idchain-nonlocal`  | :heavy_check_mark: | Control flow (jmp) + DCE |
 | `idchain-prop`      | :heavy_check_mark: |
 | `idchain`           | :heavy_check_mark: | Same as `idchain-prop` |
 | `logical-operators` | :heavy_check_mark: |
-| `nonlocal`          | :x: | Control flow |
+| `nonlocal`          | :heavy_check_mark: | Control flow (jmp) + DCE |
 | `reassign`          | :heavy_check_mark: |
 | `redundant-dce`     | :heavy_check_mark: |
 | `redundant`         | :heavy_check_mark: |
@@ -103,3 +105,20 @@ Here I give another example to show how my passes work, and it should cover all 
 ```
 
 Using this testbench, I also found a subtle mistake that I should use `//` to implement integer division and `/` to implement floating-point division. We do not record data types in the LVN table, but it indeed matters when doing constant folding.
+
+For control flow testing, I used the `diamond.bril` case as shown below. Actually the `jmp` labels can be further eliminated, which will leave as future works.
+```
+@main {
+  a: int = const 47;           
+  cond: bool = const true;     # after optimization
+  br cond .left .right;        @main {
+.left:                           jmp .left;
+  a: int = const 1;            .left:
+  jmp .end;                      a: int = const 1;
+.right:                          jmp .end;
+  a: int = const 2;            .end:
+  jmp .end;                      print a;
+.end:                          }
+  print a;                     
+}
+```
