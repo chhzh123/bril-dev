@@ -1,3 +1,4 @@
+from difflib import restore
 import sys
 import json
 
@@ -125,9 +126,9 @@ def lvn(prg):
                                 all_same = False
                                 break
                         # all operands are the same
+                        op = instr["op"]
+                        result = None
                         if all_same:
-                            result = None
-                            op = instr["op"]
                             if op == "ne":
                                 result = False
                             elif op == "eq":
@@ -140,15 +141,15 @@ def lvn(prg):
                                 result = False
                             elif op == "ge":
                                 result = True
-                            # change operation
-                            if result != None:
-                                instr["op"] = "const"
-                                instr["value"] = result
-                                instr.pop("args", None)
+                        if len(constants) > 0:
+                            if op == "and":
+                                if constants[0] == False:
+                                    result = False
+                            elif op == "or":
+                                if constants[0] == True:
+                                    result = True
                         # all operands are constants
                         if len(constants) == len(instr["args"]):
-                            result = None
-                            op = instr["op"]
                             if op == "ne":
                                 result = (constants[0] != constants[1])
                             elif op == "eq":
@@ -161,6 +162,12 @@ def lvn(prg):
                                 result = (constants[0] > constants[1])
                             elif op == "ge":
                                 result = (constants[0] >= constants[1])
+                            elif op == "and":
+                                result = (constants[0] and constants[1])
+                            elif op == "or":
+                                result = (constants[0] or constants[1])
+                            elif op == "not":
+                                result = not (constants[0])
                             elif op == "add":
                                 result = (constants[0] + constants[1])
                             elif op == "sub":
@@ -169,11 +176,11 @@ def lvn(prg):
                                 result = (constants[0] * constants[1])
                             elif op == "div":
                                 result = (constants[0] / constants[1])
-                            # change operation
-                            if result != None:
-                                instr["op"] = "const"
-                                instr["value"] = result
-                                instr.pop("args", None)
+                        # change operation
+                        if result != None:
+                            instr["op"] = "const"
+                            instr["value"] = result
+                            instr.pop("args", None)
 
                 if "dest" in instr:
                     var2index[instr["dest"]] = num
