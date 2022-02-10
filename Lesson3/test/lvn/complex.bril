@@ -1,0 +1,33 @@
+@main {
+  x: int = const 14;
+  y: int = const 2;
+
+  # constant propagation
+  div_xy: int = div x y;
+
+  # copy propagation
+  div_xy2: int = id div_xy;
+
+  # dead code
+  add_xy: int = add x y;
+
+  # common subexpression elimination
+  mul_xy: int = mul div_xy div_xy2;
+
+  # reassignment
+  y: int = const 8;
+  print y;
+
+  # double reassignment
+  y: int = const 10;
+  print y;
+
+  # further propagation
+  sub_xy: int = sub y mul_xy;
+  print sub_xy;
+
+  # constant folding
+  result: int = const -39;
+  equality: bool = eq sub_xy result; 
+  print equality;
+}

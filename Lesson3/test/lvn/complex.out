@@ -1,0 +1,10 @@
+@main {
+  y_new1: int = const 8;
+  print y_new1;
+  y: int = const 10;
+  print y;
+  sub_xy: int = const -39;
+  print sub_xy;
+  equality: bool = const true;
+  print equality;
+}

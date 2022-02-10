@@ -169,7 +169,7 @@ def lvn(prg):
                                     result = (constants[0] * constants[1])
                                 elif op == "div":
                                     if constants[1] != 0: # avoid divided by 0
-                                        result = (constants[0] / constants[1])
+                                        result = (constants[0] // constants[1])
                             # change operation
                             if result != None:
                                 is_prg_changed = True
