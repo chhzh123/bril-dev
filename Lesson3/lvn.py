@@ -21,12 +21,20 @@ def lvn(prg):
     top_func = func_map["main"]
 
     def runOnFunction(func):
+        conflict_id = 0
         # lvn_table: mapping from value tuples to canonical variables, with each row numbered
         lvn_table = []
         # (val, var)
         # val: (op, ref[arg[0]], ref[arg[1]], ...)
         # type needs not be considered since op has already determined the type
         var2index = {} # variable -> lvn index
+
+        # append function arguments
+        if "args" in func:
+            for arg in func["args"]:
+                arg = arg["name"]
+                lvn_table.append((("args"), arg))
+                var2index[arg] = len(lvn_table) - 1
 
         for i, instr in enumerate(func["instrs"]):
             # print()
@@ -77,8 +85,19 @@ def lvn(prg):
                                 written_flag = True
                                 break
                         if written_flag:
-                            dest += "_new" # fresh variable name
+                            original_dest = dest
+                            dest += "_new{}".format(conflict_id) # fresh variable name
+                            conflict_id += 1
                             instr["dest"] = dest
+                            # update the latter references
+                            for latter_instr in func["instrs"][i+1:]:
+                                if "args" in latter_instr:
+                                    for arg_idx in range(len(latter_instr["args"])):
+                                        if original_dest == latter_instr["args"][arg_idx]:
+                                            latter_instr["args"][arg_idx] = dest
+                                if "dest" in latter_instr and original_dest == latter_instr["dest"]:
+                                    # only instructions in between should be modified
+                                    break
                         else:
                             pass
                         lvn_table.append((value, dest))
@@ -89,6 +108,72 @@ def lvn(prg):
                         for arg_idx in range(len(instr["args"])):
                             instr["args"][arg_idx] = lvn_table[var2index[instr["args"][arg_idx]]][1]
                         # print("new", instr["args"])
+                    
+                        # constant folding
+                        constants = []
+                        all_variables = []
+                        for arg in instr["args"]:
+                            item = lvn_table[var2index[arg]]
+                            if item[0][0] == "const":
+                                # get actual values
+                                constants.append(lvn_table[var2index[item[1]]][0][1])
+                            all_variables.append(lvn_table[var2index[item[1]]][1])
+                        all_same = True
+                        first_var = all_variables[0]
+                        for var in all_variables[1:]:
+                            if var != first_var:
+                                all_same = False
+                                break
+                        # all operands are the same
+                        if all_same:
+                            result = None
+                            op = instr["op"]
+                            if op == "ne":
+                                result = False
+                            elif op == "eq":
+                                result = True
+                            elif op == "le":
+                                result = True
+                            elif op == "lt":
+                                result = False
+                            elif op == "gt":
+                                result = False
+                            elif op == "ge":
+                                result = True
+                            # change operation
+                            if result != None:
+                                instr["op"] = "const"
+                                instr["value"] = result
+                                instr.pop("args", None)
+                        # all operands are constants
+                        if len(constants) == len(instr["args"]):
+                            result = None
+                            op = instr["op"]
+                            if op == "ne":
+                                result = (constants[0] != constants[1])
+                            elif op == "eq":
+                                result = (constants[0] == constants[1])
+                            elif op == "le":
+                                result = (constants[0] <= constants[1])
+                            elif op == "lt":
+                                result = (constants[0] < constants[1])
+                            elif op == "gt":
+                                result = (constants[0] > constants[1])
+                            elif op == "ge":
+                                result = (constants[0] >= constants[1])
+                            elif op == "add":
+                                result = (constants[0] + constants[1])
+                            elif op == "sub":
+                                result = (constants[0] - constants[1])
+                            elif op == "mul":
+                                result = (constants[0] * constants[1])
+                            elif op == "div":
+                                result = (constants[0] / constants[1])
+                            # change operation
+                            if result != None:
+                                instr["op"] = "const"
+                                instr["value"] = result
+                                instr.pop("args", None)
 
                 if "dest" in instr:
                     var2index[instr["dest"]] = num
