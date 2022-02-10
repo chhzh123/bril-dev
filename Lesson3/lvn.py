@@ -1,5 +1,6 @@
 import sys
 import json
+import argparse
 
 def find_val(table, val):
     idx = -1
@@ -8,7 +9,7 @@ def find_val(table, val):
             return i
     return idx
 
-def lvn(prg):
+def lvn(prg, iterative=False):
     """Local Variable Numbering (LVN)
     """
     funcs = prg["functions"]
@@ -180,7 +181,7 @@ def lvn(prg):
                     if "dest" in instr:
                         var2index[instr["dest"]] = num
 
-            if not is_prg_changed:
+            if not is_prg_changed or not iterative:
                 break
 
     for func in funcs:
@@ -188,10 +189,14 @@ def lvn(prg):
     return prg
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1:
-        with open(sys.argv[1], "r") as infile:
+    parser = argparse.ArgumentParser(description='Process command line arguments')
+    parser.add_argument('-f', dest='file', default="", help='get input file')
+    parser.add_argument('-i', dest='iterative', action='store_true', help='multiple runs')
+    args = parser.parse_args()
+    if args.file != "":
+        with open(args.file, "r") as infile:
             program = json.load(infile)
     else:
         program = json.loads(''.join(sys.stdin.readlines())) # already in json format
-    new_program = lvn(program)
+    new_program = lvn(program, args.iterative)
     print(json.dumps(new_program, indent=2))

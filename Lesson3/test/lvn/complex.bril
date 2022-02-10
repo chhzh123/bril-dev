@@ -1,3 +1,5 @@
+# CMD: bril2json < {filename} | python3 ../../lvn.py -i | python3 ../../dce.py | bril2txt
+#
 @main {
   x: int = const 14;
   y: int = const 2;
