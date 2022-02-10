@@ -29,19 +29,25 @@ def lvn(prg):
         var2index = {} # variable -> lvn index
 
         for i, instr in enumerate(func["instrs"]):
+            # print()
             # print(i, instr)
             if "op" in instr:
                 # construct value
-                value = []
-                if instr["op"] == "const":
-                    value.append(instr["value"])
-                else: # suppose instr has args
-                    for arg in instr["args"]:
-                        value.append(var2index[arg]) # should be already defined
-                    # commutivity -> canonicalize
-                    if instr["op"] in ["add", "mul"]:
-                        value.sort()
-                value = tuple([instr["op"]] + value)
+                if instr["op"] == "id":
+                    value = lvn_table[var2index[instr["args"][0]]][0]
+                else:
+                    value = []
+                    if instr["op"] == "const":
+                        value.append(instr["value"])
+                    else: # suppose instr has args
+                        if "args" not in instr: # jmp
+                            continue
+                        for arg in instr["args"]:
+                            value.append(var2index[arg]) # should be already defined
+                        # commutivity -> canonicalize
+                        if instr["op"] in ["add", "mul"]:
+                            value.sort()
+                    value = tuple([instr["op"]] + value)
                 # print("value", value)
 
                 # check if the value is in the table
@@ -50,11 +56,17 @@ def lvn(prg):
                     # print("computed before")
                     # the value has been computed before; reuse it
                     num, var = idx, lvn_table[idx][1]
-                    # replace instr with copy of var
-                    instr["op"] = "id"
-                    instr["args"] = [var]
+                    if instr["op"] == "id": # copy propagation
+                        # print("id instr", value)
+                        # if the copied variable is a constant
+                        instr["op"] = value[0]
+                        instr["value"] = value[1]
+                    else: # replace instr with copy of var
+                        instr["op"] = "id"
+                        instr["args"] = [var]
                 else:
                     # A newly computed value
+                    # print("newly computed")
                     num = len(lvn_table)
                     if "dest" in instr:
                         dest = instr["dest"]
@@ -70,12 +82,13 @@ def lvn(prg):
                         else:
                             pass
                         lvn_table.append((value, dest))
+                        # print(lvn_table)
 
-                        # replace a with table[var2num[a]].var
-                        if "args" in instr:
-                            for arg_idx in range(len(instr["args"])):
-                                instr["args"][arg_idx] = lvn_table[var2index[instr["args"][arg_idx]]][1]
-                            # print("new", instr["args"])
+                    # replace a with table[var2num[a]].var
+                    if "args" in instr:
+                        for arg_idx in range(len(instr["args"])):
+                            instr["args"][arg_idx] = lvn_table[var2index[instr["args"][arg_idx]]][1]
+                        # print("new", instr["args"])
 
                 if "dest" in instr:
                     var2index[instr["dest"]] = num
