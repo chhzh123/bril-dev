@@ -167,6 +167,88 @@ def uninitialized_variables(func):
                       True)
     return in_b, out_b
 
+# https://lara.epfl.ch/w/_media/sav08:schwartzbach.pdf
+def sign_analysis(func):
+    """
+    ⊥ 0 - + T
+    ⊥: undefined
+    T: unknown
+    """
+    table = {"add":[["⊥", "⊥", "⊥", "⊥", "⊥"],
+                    ["⊥", "0", "-", "+", "T"],
+                    ["⊥", "-", "-", "T", "T"],
+                    ["⊥", "+", "T", "+", "T"],
+                    ["⊥", "T", "T", "T", "T"]],
+             "sub":[["⊥", "⊥", "⊥", "⊥", "⊥"],
+                    ["⊥", "0", "+", "-", "T"],
+                    ["⊥", "-", "T", "-", "T"],
+                    ["⊥", "+", "+", "T", "T"],
+                    ["⊥", "T", "T", "T", "T"]],
+             "mul":[["⊥", "0", "⊥", "⊥", "⊥"],
+                    ["0", "0", "0", "0", "0"],
+                    ["⊥", "0", "+", "-", "T"],
+                    ["⊥", "0", "-", "+", "T"],
+                    ["⊥", "0", "T", "T", "T"]],
+             "div":[["⊥", "⊥", "⊥", "⊥", "⊥"],
+                    ["⊥", "T", "0", "0", "T"],
+                    ["⊥", "T", "T", "T", "T"],
+                    ["⊥", "T", "T", "T", "T"],
+                    ["⊥", "T", "T", "T", "T"]],}
+
+    init_vars = {}
+    for instr in func["instrs"]:
+        if "dest" in instr:
+            init_vars[instr["dest"]] = "⊥"
+
+    def symbol2index(sym):
+        if sym == "⊥":
+            return 0
+        elif sym == "0":
+            return 1
+        elif sym == "-":
+            return 2
+        elif sym == "+":
+            return 3
+        elif sym == "T":
+            return 4
+
+    def merge_sign(b1, b2):
+        out_b = {}
+        for name in b2:
+            if name not in b1:
+                out_b[name] = b2[name]
+            else:
+                if b1[name] == b2[name]:
+                    out_b[name] = b1[name]
+                elif "⊥" in b1[name] or "⊥" in b2[name]:
+                    out_b[name] = "⊥"
+                else:
+                    out_b[name] = "T"
+        return out_b
+
+    def transfer_sign(block, in_b):
+        out_b = in_b.copy()
+        for instr in block:
+            if "op" in instr:
+                if instr["op"] == "const":
+                    val = instr["value"]
+                    if val in ["true", "false"]:
+                        out_b[instr["dest"]] = "+"
+                    else:
+                        out_b[instr["dest"]] = "+" if val > 0 else ("0" if val == 0 else "-")
+                elif instr["op"] in ["add", "sub", "mul", "div"]:
+                    op1 = instr["args"][0]
+                    op2 = instr["args"][1]
+                    out_b[instr["dest"]] = table[instr["op"]][symbol2index(out_b[op1])][symbol2index(out_b[op2])] # should reflect latest changes
+        return out_b
+
+    in_b, out_b = dfa(name2block,
+                      init_vars,
+                      merge_sign,
+                      transfer_sign,
+                      True)
+    return in_b, out_b
+
 # http://lim.univ-reunion.fr/staff/fred/Enseignement/Verif-M1/static3.pdf
 def interval_analysis(func):
     init_interval = {}
@@ -200,6 +282,7 @@ if __name__ == "__main__":
     parser.add_argument('-live_var', dest='live_var', action='store_true', help='living variables')
     parser.add_argument('-uninit_var', dest='uninit_var', action='store_true', help='uninitialized variables')
     parser.add_argument('-interval', dest='interval', action='store_true', help='interval analysis')
+    parser.add_argument('-sign', dest='sign', action='store_true', help='sign analysis')
     args = parser.parse_args()
     if args.file != "":
         with open(args.file, "r") as infile:
@@ -228,7 +311,8 @@ if __name__ == "__main__":
         in_b, out_b = uninitialized_variables(func)
     elif args.interval:
         in_b, out_b = interval_analysis(func)
-        print(in_b, out_b)
+    elif args.sign:
+        in_b, out_b = sign_analysis(func)
     else:
         raise RuntimeError("Should provide algorithm name")
     for b_name in in_b:

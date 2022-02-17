@@ -1,0 +1,18 @@
+# ARGS: sign
+
+@main {
+  a: int = const 10;
+  b: int = const -5;
+  cond: bool = const true;
+  br cond .left .right;
+.left:
+  c: int = add a b;
+  d: int = mul a b;
+  jmp .end;
+.right:
+  one: int = const 1;
+  c: int = add a one;
+  jmp .end;
+.end:
+  print c;
+}
