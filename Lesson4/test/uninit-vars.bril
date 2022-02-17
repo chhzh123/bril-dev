@@ -1,0 +1,17 @@
+# ARGS: uninit_var
+
+@main {
+  br cond .left .right;
+.left:
+  a: int = const 1;
+  b: int = const 5;
+  jmp .end;
+.right:
+  a: int = const 2;
+  c: int = const 10;
+  jmp .end;
+.end:
+  d: int = sub a c;
+  e: int = add b c;
+  print d;
+}

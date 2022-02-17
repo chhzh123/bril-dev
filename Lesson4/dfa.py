@@ -137,11 +137,38 @@ def live_variables(func):
     return in_b, out_b
 
 
+def uninitialized_variables(func):
+
+    init_var = set()
+    for instr in func["instrs"]:
+        if "args" in instr:
+            for arg in instr["args"]:
+                init_var.add(arg)
+
+    if "args" in func:
+        for arg in func["args"]:
+            init_var.discard(arg["name"])
+
+    def transfer_uninit_var(block, in_b):
+        def_b = set()
+        for instr in block:
+            if "dest" in instr:
+                def_b.add(instr["dest"])
+        return in_b - def_b
+
+    in_b, out_b = dfa(name2block,
+                      init_var,
+                      lambda x, y: x.union(y),
+                      transfer_uninit_var,
+                      True)
+    return in_b, out_b
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Process command line arguments')
     parser.add_argument('-f', dest='file', default="", help='get input file')
     parser.add_argument('-reach_def', dest='reach_def', action='store_true', help='reaching definition')
     parser.add_argument('-live_var', dest='live_var', action='store_true', help='living variables')
+    parser.add_argument('-uninit_var', dest='uninit_var', action='store_true', help='uninitialized variables')
     args = parser.parse_args()
     if args.file != "":
         with open(args.file, "r") as infile:
@@ -166,6 +193,8 @@ if __name__ == "__main__":
         in_b, out_b = reaching_defition(func)
     elif args.live_var:
         in_b, out_b = live_variables(func)
+    elif args.uninit_var:
+        in_b, out_b = uninitialized_variables(func)
     else:
         raise RuntimeError("Should provide algorithm name")
     for b_name in in_b:
