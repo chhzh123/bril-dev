@@ -43,10 +43,14 @@ def dfa(cfg, init, merge, transfer, forward=True):
         out_b[entry] = init
     for b_name in cfg:
         if b_name != entry:
-            if forward:
-                in_b[b_name] = set() # placeholder
+            if isinstance(init, set):
+                init_class = set
             else:
-                out_b[b_name] = set()
+                init_class = dict
+            if forward:
+                in_b[b_name] = init_class() # placeholder
+            else:
+                out_b[b_name] = init_class()
         if forward:
             out_b[b_name] = init
         else:
@@ -136,7 +140,7 @@ def live_variables(func):
                       False)
     return in_b, out_b
 
-
+# http://laser.cs.umass.edu/courses/cs521-621.Fall10/documents/17-dataflowframeworks-2r.pdf
 def uninitialized_variables(func):
 
     init_var = set()
@@ -163,12 +167,39 @@ def uninitialized_variables(func):
                       True)
     return in_b, out_b
 
+# http://lim.univ-reunion.fr/staff/fred/Enseignement/Verif-M1/static3.pdf
+def interval_analysis(func):
+    init_interval = {}
+    for instr in func["instrs"]:
+        if "args" in instr:
+            for arg in instr["args"]:
+                init_interval[arg] = ["-INF", "INF"]
+
+    def transfer_interval(block, in_b):
+        out_b = in_b.copy()
+        for instr in block:
+            if "op" in instr and instr["op"] == "const":
+                out_b[instr["dest"]] = [instr["value"], instr["value"]]
+            elif "dest" in instr:
+                if instr["op"] == "add":
+                    op1, op2 = instr["args"]
+                    out_b[instr["dest"]] = [out_b[op1][0] + out_b[op2][0], out_b[op1][1] + out_b[op2][1]]
+        return out_b
+
+    in_b, out_b = dfa(name2block,
+                      init_interval,
+                      lambda x, y: x.union(y), # take max
+                      transfer_interval,
+                      True)
+    return in_b, out_b
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Process command line arguments')
     parser.add_argument('-f', dest='file', default="", help='get input file')
     parser.add_argument('-reach_def', dest='reach_def', action='store_true', help='reaching definition')
     parser.add_argument('-live_var', dest='live_var', action='store_true', help='living variables')
     parser.add_argument('-uninit_var', dest='uninit_var', action='store_true', help='uninitialized variables')
+    parser.add_argument('-interval', dest='interval', action='store_true', help='interval analysis')
     args = parser.parse_args()
     if args.file != "":
         with open(args.file, "r") as infile:
@@ -195,9 +226,16 @@ if __name__ == "__main__":
         in_b, out_b = live_variables(func)
     elif args.uninit_var:
         in_b, out_b = uninitialized_variables(func)
+    elif args.interval:
+        in_b, out_b = interval_analysis(func)
+        print(in_b, out_b)
     else:
         raise RuntimeError("Should provide algorithm name")
     for b_name in in_b:
         print("{}:".format(b_name))
-        print("  in: ", "∅" if len(in_b[b_name]) == 0 else ", ".join(in_b[b_name]))
-        print("  out:", "∅" if len(out_b[b_name]) == 0 else ", ".join(out_b[b_name]))
+        if isinstance(in_b, set):
+            print("  in: ", "∅" if len(in_b[b_name]) == 0 else ", ".join(in_b[b_name]))
+            print("  out:", "∅" if len(out_b[b_name]) == 0 else ", ".join(out_b[b_name]))
+        else:
+            print("  in: ", "∅" if len(in_b[b_name]) == 0 else in_b[b_name])
+            print("  out:", "∅" if len(out_b[b_name]) == 0 else out_b[b_name])
