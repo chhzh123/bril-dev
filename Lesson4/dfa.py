@@ -20,7 +20,7 @@ while worklist is not empty:
         worklist += successors of b
 """
 
-def dfa(cfg, init, merge, transfer):
+def dfa(cfg, init, merge, transfer, forward=True):
     """Dataflow Analysis
     """
     preds, succs = get_edges(cfg)
@@ -29,32 +29,54 @@ def dfa(cfg, init, merge, transfer):
     out_b = {}
     # find entry block
     for b_name in preds:
-        if len(preds[b_name]) == 0:
+        if forward and len(preds[b_name]) == 0:
             entry = b_name
             break
+        elif not forward and len(succs[b_name]) == 0:
+            entry = b_name
 
     # initialization
     worklist = []
-    in_b[entry] = init
+    if forward:
+        in_b[entry] = init
+    else:
+        out_b[entry] = init
     for b_name in cfg:
         if b_name != entry:
-            in_b[b_name] = set() # placeholder
-        out_b[b_name] = init
+            if forward:
+                in_b[b_name] = set() # placeholder
+            else:
+                out_b[b_name] = set()
+        if forward:
+            out_b[b_name] = init
+        else:
+            in_b[b_name] = init
         worklist.append(b_name)
+
+    if not forward:
+        worklist.reverse()
 
     # worklist algorithm
     while len(worklist) != 0:
         b_name = worklist.pop(0) # from front
-        # print(b_name)
-        for pred in preds[b_name]:
-            in_b[b_name] = merge(in_b[b_name], out_b[pred])
-        new_v = transfer(cfg[b_name], in_b[b_name])
-        # print("out_v", new_v)
-        if out_b[b_name] != new_v:
+        if forward:
+            for pred in preds[b_name]:
+                in_b[b_name] = merge(in_b[b_name], out_b[pred])
+            new_v = transfer(cfg[b_name], in_b[b_name])
+            if out_b[b_name] != new_v:
+                for succ in succs[b_name]:
+                    if succ not in worklist:
+                        worklist.append(succ)
+                out_b[b_name] = new_v
+        else:
             for succ in succs[b_name]:
-                if succ not in worklist:
-                    worklist.append(succ)
-            out_b[b_name] = new_v
+                out_b[b_name] = merge(out_b[b_name], in_b[succ])
+            new_v = transfer(cfg[b_name], out_b[b_name])
+            if in_b[b_name] != new_v:
+                for pred in preds[b_name]:
+                    if pred not in worklist:
+                        worklist.append(pred)
+                in_b[b_name] = new_v
 
     return in_b, out_b
 
@@ -88,7 +110,30 @@ def reaching_defition(func):
     in_b, out_b = dfa(name2block,
                       init_def,
                       lambda x, y: x.union(y),
-                      transfer_reaching_def)
+                      transfer_reaching_def,
+                      True)
+    return in_b, out_b
+
+
+def live_variables(func):
+
+    def transfer_live_var(block, out_b):
+        in_b = out_b.copy()
+        # should perform operation one by one
+        for instr in block[::-1]:
+            if "args" in instr:
+                for arg in instr["args"]:
+                    in_b.add(arg)
+            if "dest" in instr:
+                in_b.discard(instr["dest"])
+        # use_b.union(out_b - def_b)
+        return in_b
+
+    in_b, out_b = dfa(name2block,
+                      set(),
+                      lambda x, y: x.union(y),
+                      transfer_live_var,
+                      False)
     return in_b, out_b
 
 
@@ -96,6 +141,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Process command line arguments')
     parser.add_argument('-f', dest='file', default="", help='get input file')
     parser.add_argument('-reach_def', dest='reach_def', action='store_true', help='reaching definition')
+    parser.add_argument('-live_var', dest='live_var', action='store_true', help='living variables')
     args = parser.parse_args()
     if args.file != "":
         with open(args.file, "r") as infile:
@@ -118,7 +164,11 @@ if __name__ == "__main__":
 
     if args.reach_def:
         in_b, out_b = reaching_defition(func)
-        for item in zip(in_b.items(), out_b.items()):
-            print("{}:".format(item[0][0]))
-            print("  in: ", ", ".join(item[0][1]))
-            print("  out:", ", ".join(item[1][1]))
+    elif args.live_var:
+        in_b, out_b = live_variables(func)
+    else:
+        raise RuntimeError("Should provide algorithm name")
+    for b_name in in_b:
+        print("{}:".format(b_name))
+        print("  in: ", "∅" if len(in_b[b_name]) == 0 else ", ".join(in_b[b_name]))
+        print("  out:", "∅" if len(out_b[b_name]) == 0 else ", ".join(out_b[b_name]))
