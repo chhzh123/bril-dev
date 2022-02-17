@@ -7,6 +7,7 @@ This repository contains experimental tools of the [Bril](https://github.com/sam
 * Lesson 1: Intro & Paper Claiming
 * Lesson 2: [Bril](Lesson2)
 * Lesson 3: [DCE/LVN](Lesson3)
+* Lesson 4: [Dataflow Analysis](Lesson4)
 
 
 ## Build

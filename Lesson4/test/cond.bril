@@ -1,19 +1,19 @@
 # ARGS: live
 
 @main {
-  a: int = const 47;
-  b: int = const 42;
-  cond: bool = const true;
+  a: int = const 47; # d0_a
+  b: int = const 42; # d1_b
+  cond: bool = const true; # d2_cond
   br cond .left .right;
 .left:
-  b: int = const 1;
-  c: int = const 5;
+  b: int = const 1; # d3_b
+  c: int = const 5; # d4_c
   jmp .end;
 .right:
-  a: int = const 2;
-  c: int = const 10;
+  a: int = const 2; # d5_a
+  c: int = const 10; # d6_c
   jmp .end;
 .end:
-  d: int = sub a c;
+  d: int = sub a c; # d7_d
   print d;
 }
