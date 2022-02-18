@@ -125,11 +125,11 @@ def live_variables(func):
         in_b = out_b.copy()
         # should perform operation one by one
         for instr in block[::-1]:
+            if "dest" in instr:
+                in_b.discard(instr["dest"])
             if "args" in instr:
                 for arg in instr["args"]:
                     in_b.add(arg)
-            if "dest" in instr:
-                in_b.discard(instr["dest"])
         # use_b.union(out_b - def_b)
         return in_b
 
@@ -317,7 +317,7 @@ if __name__ == "__main__":
         raise RuntimeError("Should provide algorithm name")
     for b_name in in_b:
         print("{}:".format(b_name))
-        if isinstance(in_b, set):
+        if isinstance(in_b[b_name], set):
             print("  in: ", "∅" if len(in_b[b_name]) == 0 else ", ".join(in_b[b_name]))
             print("  out:", "∅" if len(out_b[b_name]) == 0 else ", ".join(out_b[b_name]))
         else:
