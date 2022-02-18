@@ -1,4 +1,4 @@
-# ARGS: live
+# ARGS: live_var
 
 @main {
   a: int = const 47; # d0_a

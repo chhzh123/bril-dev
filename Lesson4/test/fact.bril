@@ -1,4 +1,4 @@
-# ARGS: live
+# ARGS: live_var
 
 @main {
   result: int = const 1;

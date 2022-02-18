@@ -1,6 +1,6 @@
 # ARGS: uninit_var
 
-@main {
+@main(cond: bool) {
   br cond .left .right;
 .left:
   a: int = const 1;

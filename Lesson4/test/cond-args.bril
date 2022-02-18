@@ -1,4 +1,4 @@
-# ARGS: live
+# ARGS: live_var
 
 @main(cond: bool) {
   a: int = const 47;
