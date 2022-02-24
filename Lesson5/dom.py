@@ -7,13 +7,16 @@ import functools
 
 def dominance(func):
     # find entry block
+    entry = None
     for name in cfg:
         if len(preds[name]) == 0:
             entry = name
             break
     dom = {} # map from vertices to sets of vertices
     for name in cfg:
-        dom[name] = set([name, entry])
+        # dom[name] = set([name]).union(set([entry]) if entry != None else set())
+        if name != entry:
+            dom[name] = set(cfg.keys())
     while True:
         old_dom = dom.copy()
         # if traverse in reverse post-order, it converges faster
@@ -109,6 +112,8 @@ if __name__ == "__main__":
         raise RuntimeError("Do not have main function")
 
     # construct cfg: name -> block
+    # entry = {"label": "myentry"}
+    # func['instrs'] = [entry] + func['instrs']
     cfg = block_map(form_blocks(func['instrs']))
     # Insert terminators into blocks that don't have them
     add_terminators(cfg)
@@ -125,6 +130,7 @@ if __name__ == "__main__":
     print("Dominator tree")
     for name in name2node:
         print(" ", name, name2node[name].children)
+    print()
 
     print("Dominance frontier")
     frontier = domination_frontier(dom)
