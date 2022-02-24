@@ -33,7 +33,7 @@ Another tricky thing here is that I first thought entry block should be the bloc
 To construct the dominance tree, we should first get the strict dominators and find the immediate dominators. Finding strict dominators is easy, which just needs to eliminate the node itself from the dominator set. For finding the immediate dominators, we should follow its definition -- for all the node B test its strict dominators, if some node A is not in the dominator sets of the other node that strictly dominates B, then A is the immediate dominator of B. After we get the immediate dominators, we have already got the edges for the dominator tree. Thus, I built a class `Node` for the tree representation, which stores its parents and children, and is useful for tree traversal in both directions.
 
 
-## Dominance frontier
+## Dominance Frontier
 We have the strict dominators, and constructing domination frontier is also straightforward -- "A’s dominance frontier contains B iff A does not strictly dominate B, but A does dominate some predecessor of B".
 
 Though the implementation is easy, the result is surprising. From the [`loopcond-front`](https://github.com/sampsyo/bril/blob/main/examples/test/dom/loopcond-front.out) example, we can see that the node itself can even be contained in the dominance frontier. This may happen when a backedge/loop appears in the CFG. The entry block of the loop may dominate its predecessors from the bottom, causing it to fit the definition.
