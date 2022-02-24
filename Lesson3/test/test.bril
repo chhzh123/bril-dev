@@ -1,0 +1,11 @@
+@main(cond: bool) {
+  br cond .left .right;
+.left:
+  a: int = const 4;
+  jmp .end;
+.right:
+  a: int = const 2;
+  jmp .end;
+.end:
+  print a;
+}
