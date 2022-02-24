@@ -31,6 +31,37 @@ def dominance(func):
             break
     return dom
 
+def test_dominance(entry, dom):
+    results = []
+    for name in dom:
+        paths = []
+        dest = name
+
+        def DFS(node, visited, path):
+            nonlocal paths
+            visited.append(node)
+            path.append(node)
+            if node == dest:
+                paths.append(path.copy())
+            for succ in succs[node]:
+                if succ not in visited:
+                    DFS(succ, visited, path)
+            path.pop()
+            visited.pop()
+
+        DFS(entry, [], [])
+        results.append(True)
+        for path in paths:
+            for dominator in dom[name]:
+                if dominator not in path:
+                    results[-1] = False
+                    break
+
+    if sum(results) != len(results):
+        return False
+    else:
+        return True
+
 def strict_dominance(dom):
     res = dom.copy()
     for name in dom:
@@ -121,6 +152,8 @@ if __name__ == "__main__":
     preds, succs = get_edges(cfg)
 
     dom = dominance(func)
+    if not test_dominance("entry", dom):
+        raise RuntimeError("Incorrect dominance")
     print("Dominators")
     for name in dom:
         print(" ", name, dom[name])
