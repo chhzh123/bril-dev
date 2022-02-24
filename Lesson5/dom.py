@@ -77,6 +77,19 @@ def dominator_tree(dom):
                 name2node[parent].add_child(name2node[name])
     return name2node
 
+def domination_frontier(dom):
+    # A’s dominance frontier contains B iff A does not strictly dominate B, but A does dominate some predecessor of B.
+    sdom = strict_dominance(dom)
+    frontier = {}
+    for node_a in dom:
+        frontier[node_a] = set()
+        for node_b in sdom:
+            if node_a not in sdom[node_b]:
+                for pred in preds[node_b]:
+                    if node_a in dom[pred]:
+                        frontier[node_a].add(node_b)
+    return frontier
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Process command line arguments')
     parser.add_argument('-f', dest='file', default="", help='get input file')
@@ -112,3 +125,8 @@ if __name__ == "__main__":
     print("Dominator tree")
     for name in name2node:
         print(" ", name, name2node[name].children)
+
+    print("Dominance frontier")
+    frontier = domination_frontier(dom)
+    for name in frontier:
+        print(" ", name, frontier[name])
