@@ -125,31 +125,27 @@ if __name__ == "__main__":
     # find top level function
     funcs = program["functions"]
     for func in funcs:
-        if func["name"] == "main":
-            break
-    else:
-        raise RuntimeError("Do not have main function")
+        # construct cfg: name -> block
+        entry = [{"label": "myentry"}]
+        if "op" in func["instrs"][0]: # no label for the entry block
+            entry += [{"label": "b1"}]
+        func['instrs'] = entry + func['instrs']
+        cfg = block_map(form_blocks(func['instrs']))
+        # Insert terminators into blocks that don't have them
+        add_terminators(cfg)
 
-    # construct cfg: name -> block
-    entry = [{"label": "myentry"}]
-    if "op" in func["instrs"][0]: # no label for the entry block
-        entry += [{"label": "b1"}]
-    func['instrs'] = entry + func['instrs']
-    cfg = block_map(form_blocks(func['instrs']))
-    # Insert terminators into blocks that don't have them
-    add_terminators(cfg)
+        preds, succs = get_edges(cfg)
 
-    preds, succs = get_edges(cfg)
+        dom = dominance(cfg, func, preds)
+        frontiers = domination_frontier(dom, preds)
+        idom = imm_dominance(dom)
 
-    dom = dominance(cfg, func, preds)
-    frontiers = domination_frontier(dom, preds)
-    idom = imm_dominance(dom)
+        # name2node = dominator_tree(dom, preds)
+        # print("Dominator tree")
+        # for name in name2node:
+        #     print(" ", name, name2node[name].children)
+        # print()
 
-    # name2node = dominator_tree(dom, preds)
-    # print("Dominator tree")
-    # for name in name2node:
-    #     print(" ", name, name2node[name].children)
-    # print()
+        func["instrs"] = to_ssa(cfg)
 
-    func["instrs"] = to_ssa(cfg)
     print(json.dumps(program, indent=2))
