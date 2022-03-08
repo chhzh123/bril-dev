@@ -1,0 +1,10 @@
+@main(cond: bool) {
+.entry:
+  x: int = const 0;
+  br cond .left .end;
+.left:
+  x: int = const 1;
+  jmp .end;
+.end:
+  print x;
+}

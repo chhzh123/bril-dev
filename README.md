@@ -9,6 +9,7 @@ This repository contains experimental tools of the [Bril](https://github.com/sam
 * Lesson 3: [DCE/LVN](Lesson3)
 * Lesson 4: [Dataflow Analysis](Lesson4)
 * Lesson 5: [Global Analysis](Lesson5)
+* Lesson 5: [SSA](Lesson6)
 
 
 ## Build
