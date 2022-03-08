@@ -17,6 +17,9 @@ def to_ssa(cfg):
                     def_map[instr["dest"]] = [block_name]
                 else:
                     def_map[instr["dest"]].append(block_name)
+            # rename possible phi op
+            if "op" in instr and instr["op"] == "phi":
+                instr["op"] = "phi_"
 
     # insert phi node
     for var in def_map:
