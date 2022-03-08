@@ -66,7 +66,7 @@ def to_ssa(cfg):
             # replace each argument to instr with stack[old name]
             if "op" in instr and instr["op"] != "phi" and "args" in instr:
                 for idx in range(len(instr["args"])):
-                    old_name = instr["args"][idx].split(".")[0]
+                    old_name = instr["args"][idx]#.split(".")[0]
                     instr["args"][idx] = stack[old_name][-1]
             # replace instr's destination with a new name
             if "dest" in instr:
@@ -84,7 +84,7 @@ def to_ssa(cfg):
                     # and then replace the `index`-th operand of phi by stack top
                     for idx, name in enumerate(instr["labels"]):
                         if name == block_name:
-                            old_name = instr["args"][idx].split(".")[0]
+                            old_name = instr["args"][idx]#.split(".")[0]
                             if len(stack[old_name]) == 0:
                                 instr["args"][idx] = "__undefined"
                             else:
