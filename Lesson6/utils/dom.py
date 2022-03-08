@@ -1,11 +1,11 @@
 import sys
 import json
 import argparse
-from bb import form_blocks
-from cfg import block_map, add_terminators, get_edges
+from .bb import form_blocks
+from .cfg import block_map, add_terminators, get_edges
 import functools
 
-def dominance(func):
+def dominance(cfg, func, preds):
     # find entry block
     entry = None
     for name in cfg:
@@ -111,7 +111,7 @@ def dominator_tree(dom):
                 name2node[parent].add_child(name2node[name])
     return name2node
 
-def domination_frontier(dom):
+def domination_frontier(dom, preds):
     # A’s dominance frontier contains B iff A does not strictly dominate B, but A does dominate some predecessor of B.
     sdom = strict_dominance(dom)
     frontier = {}
@@ -151,7 +151,7 @@ if __name__ == "__main__":
 
     preds, succs = get_edges(cfg)
 
-    dom = dominance(func)
+    dom = dominance(cfg, func, preds)
     if not test_dominance("entry", dom):
         raise RuntimeError("Incorrect dominance")
     print("Dominators")
@@ -166,6 +166,6 @@ if __name__ == "__main__":
     print()
 
     print("Dominance frontier")
-    frontier = domination_frontier(dom)
+    frontier = domination_frontier(dom, preds)
     for name in frontier:
         print(" ", name, frontier[name])
