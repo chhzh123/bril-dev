@@ -1,9 +1,10 @@
 import sys
 import json
 import argparse
+import copy
 from utils.bb import form_blocks
 from utils.cfg import block_map, add_terminators, get_edges
-from utils.dom import dominance, domination_frontier
+from utils.dom import dominance, domination_frontier, imm_dominance, dominator_tree
 
 def to_ssa(cfg):
     # construct definition map: variable -> block
@@ -16,6 +17,7 @@ def to_ssa(cfg):
                     def_map[instr["dest"]] = [block_name]
                 else:
                     def_map[instr["dest"]].append(block_name)
+
     # insert phi node
     for var in def_map:
         def_list = def_map[var]
@@ -43,6 +45,49 @@ def to_ssa(cfg):
                 if frontier_block not in def_list:
                     def_list.append(frontier_block)
             ptr += 1
+
+    # rename variables
+    stack = {}
+    counter = {} # naming counter
+    for var in def_map:
+        stack[var] = [] # create empty stack
+        counter[var] = 0
+    def rename(block_name, stack_, counter):
+        block = cfg[block_name]
+        stack = copy.deepcopy(stack_)
+        for instr in block:
+            # replace each argument to instr with stack[old name]
+            if "args" in instr:
+                for idx in range(len(instr["args"])):
+                    old_name = instr["args"][idx].split(".")[0]
+                    instr["args"][idx] = stack[old_name][-1]
+            # replace instr's destination with a new name
+            if "dest" in instr:
+                old_name = instr["dest"]
+                new_name = "{}.{}".format(old_name, counter[instr["dest"]])
+                counter[old_name] += 1
+                instr["dest"] = new_name
+                # push that new name onto stack[old name]
+                stack[old_name].append(new_name)
+        for succ in succs[block_name]:
+            for instr in cfg[succ]:
+                if "op" in instr and instr["op"] == "phi":
+                    # Assuming p is for a variable v, make it read from stack[v]
+                    # first find the index of block in its successor's phi node
+                    # and then replace the `index`-th operand of phi by stack top
+                    for idx, name in enumerate(instr["labels"]):
+                        if name == block_name:
+                            old_name = instr["args"][idx].split(".")[0]
+                            instr["args"][idx] = stack[old_name][-1]
+                            break
+        for imm in idom:
+            if block_name in idom[imm]:
+                rename(imm, stack, counter)
+        # pop all the names we just pushed onto the stacks
+        # since we created new stacks in the function, this should be automatically done
+
+    rename("entry", stack, counter)
+
     # get back results
     instrs = []
     for block_name in cfg:
@@ -76,6 +121,13 @@ if __name__ == "__main__":
 
     dom = dominance(cfg, func, preds)
     frontiers = domination_frontier(dom, preds)
+    idom = imm_dominance(dom)
+
+    # name2node = dominator_tree(dom, preds)
+    # print("Dominator tree")
+    # for name in name2node:
+    #     print(" ", name, name2node[name].children)
+    # print()
 
     func["instrs"] = to_ssa(cfg)
     print(json.dumps(program, indent=2))

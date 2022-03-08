@@ -68,8 +68,9 @@ def strict_dominance(dom):
         res[name] = dom[name]-set([name])
     return res
 
-def imm_dominance(sdom):
+def imm_dominance(dom):
     # A immediately dominates B iff: A strictly dominates B, and A does not strictly dominates any other node that strictly dominates B (A is B’s direct parent in the dominator tree)
+    sdom = strict_dominance(dom)
     idom = {}
     for node_b in sdom:
         idom[node_b] = set()
@@ -94,17 +95,15 @@ class Node():
     def __repr__(self):
         return self.name
 
-def dominator_tree(dom):
+def dominator_tree(dom, preds):
     name2node = {}
     root = None
     for name in dom:
         name2node[name] = Node(name)
         if len(preds[name]):
             root = name
-    # get strict dominators
-    sdom = strict_dominance(dom)
     # find immediate dominator
-    idom = imm_dominance(sdom)
+    idom = imm_dominance(dom)
     for name in idom:
         for parent in idom[name]:
             if parent != name:
@@ -159,7 +158,7 @@ if __name__ == "__main__":
         print(" ", name, dom[name])
     print()
 
-    name2node = dominator_tree(dom)
+    name2node = dominator_tree(dom, preds)
     print("Dominator tree")
     for name in name2node:
         print(" ", name, name2node[name].children)

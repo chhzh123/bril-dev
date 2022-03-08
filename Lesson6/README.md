@@ -16,4 +16,6 @@ bril2json < test/..bril | python3 to_ssa.py
 ```
 
 <!-- https://groups.seas.harvard.edu/courses/cs153/2018fa/lectures/Lec23-SSA.pdf
-https://www.cs.princeton.edu/courses/archive/spr04/cos598C/lectures/11-SSA-3x1.pdf -->
+https://www.cs.princeton.edu/courses/archive/spr04/cos598C/lectures/11-SSA-3x1.pdf
+https://www.ics.uci.edu/~yeouln/course/ssa.pdf
+-->
