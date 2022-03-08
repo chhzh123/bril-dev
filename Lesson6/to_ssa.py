@@ -35,12 +35,14 @@ def to_ssa(cfg):
                 phi_node["labels"] = []
                 for pred in preds[frontier_block]:
                     phi_node["labels"].append(pred)
-                if "op" not in block[0]:
-                    if "op" in block[1] and block[1]["op"] != "phi":
-                        block.insert(1, phi_node)
-                else:
-                    if "op" in block[0] and block[0]["op"] != "phi":
-                        block.insert(0, phi_node)
+                # test if phi node of var has been added
+                flag = False
+                for instr in block:
+                    if "op" in instr and instr["op"] == "phi" and instr["dest"] == var:
+                        flag = True
+                        break
+                if not flag:
+                    block.insert(0, phi_node)
                 # Add block to Defs[v] (because it now writes to v!), unless it's already in there.
                 if frontier_block not in def_list:
                     def_list.append(frontier_block)
