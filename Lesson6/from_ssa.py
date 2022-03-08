@@ -14,7 +14,11 @@ def from_ssa(cfg):
                 dest = instr["dest"]
                 for i, label in enumerate(instr["labels"]):
                     if instr["args"][i] != "__undefined":
-                        cfg[label].append({"op": "id", "args": [instr["args"][i]], "dest": dest})
+                        if cfg[label][-1]["op"] in ["br", "jmp"]:
+                            pos = len(cfg[label]) - 1
+                        else:
+                            pos = len(cfg[label])
+                        cfg[label].insert(pos, {"op": "id", "args": [instr["args"][i]], "dest": dest})
             else:
                 new_instr.append(instr)
         cfg[block_name] = new_instr
