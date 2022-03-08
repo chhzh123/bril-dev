@@ -62,7 +62,7 @@ def to_ssa(cfg):
         stack = copy.deepcopy(stack_)
         for instr in block:
             # replace each argument to instr with stack[old name]
-            if "args" in instr:
+            if "op" in instr and instr["op"] != "phi" and "args" in instr:
                 for idx in range(len(instr["args"])):
                     old_name = instr["args"][idx].split(".")[0]
                     instr["args"][idx] = stack[old_name][-1]
