@@ -51,7 +51,7 @@ def to_ssa(cfg):
     counter = {} # naming counter
     for var in def_map:
         stack[var] = [] # create empty stack
-        counter[var] = 1
+        counter[var] = 0
     # add function arguments
     if "args" in func:
         for arg in func["args"]:
@@ -83,7 +83,10 @@ def to_ssa(cfg):
                     for idx, name in enumerate(instr["labels"]):
                         if name == block_name:
                             old_name = instr["args"][idx].split(".")[0]
-                            instr["args"][idx] = stack[old_name][-1]
+                            if len(stack[old_name]) == 0:
+                                instr["args"][idx] = "__undefined"
+                            else:
+                                instr["args"][idx] = stack[old_name][-1]
                             break
         for imm in idom:
             if block_name in idom[imm]:
