@@ -91,11 +91,13 @@ def to_ssa(cfg):
         # pop all the names we just pushed onto the stacks
         # since we created new stacks in the function, this should be automatically done
 
-    rename("entry", stack, counter)
+    rename("myentry", stack, counter)
 
     # get back results
     instrs = []
     for block_name in cfg:
+        if block_name == "myentry":
+            continue
         instrs.append({"label": block_name})
         instrs.extend(cfg[block_name])
     return instrs
@@ -118,6 +120,11 @@ if __name__ == "__main__":
     else:
         raise RuntimeError("Do not have main function")
 
+    # construct cfg: name -> block
+    entry = [{"label": "myentry"}]
+    if "op" in func["instrs"][0]: # no label for the entry block
+        entry += [{"label": "b1"}]
+    func['instrs'] = entry + func['instrs']
     cfg = block_map(form_blocks(func['instrs']))
     # Insert terminators into blocks that don't have them
     add_terminators(cfg)
