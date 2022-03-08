@@ -51,7 +51,12 @@ def to_ssa(cfg):
     counter = {} # naming counter
     for var in def_map:
         stack[var] = [] # create empty stack
-        counter[var] = 0
+        counter[var] = 1
+    # add function arguments
+    if "args" in func:
+        for arg in func["args"]:
+            name = arg["name"]
+            stack[name] = [name]
     def rename(block_name, stack_, counter):
         block = cfg[block_name]
         stack = copy.deepcopy(stack_)
