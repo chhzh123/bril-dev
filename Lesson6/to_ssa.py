@@ -9,10 +9,12 @@ from utils.dom import dominance, domination_frontier, imm_dominance, dominator_t
 def to_ssa(cfg):
     # construct definition map: variable -> block
     def_map = {}
+    type_map = {}
     for block_name in cfg:
         block = cfg[block_name]
         for instr in block:
             if "dest" in instr:
+                type_map[instr["dest"]] = instr["type"]
                 if instr["dest"] not in def_map:
                     def_map[instr["dest"]] = [block_name]
                 else:
@@ -32,7 +34,7 @@ def to_ssa(cfg):
                 block = cfg[frontier_block]
                 phi_node = {}
                 phi_node["op"] = "phi"
-                phi_node["type"] = "int"
+                phi_node["type"] = type_map[var]
                 phi_node["args"] = [var] * len(preds[frontier_block])
                 phi_node["dest"] = var
                 phi_node["labels"] = []
