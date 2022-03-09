@@ -25,13 +25,13 @@ def from_ssa(cfg):
 
     # get back results
     instrs = []
-    flag = False
+    used = False
     for block_name in cfg:
         for instr in cfg[block_name]:
             if ("arg" in instr and "myentry" in instr["args"]) or ("labels" in instr and "myentry" in instr["labels"]):
-                flag = True
+                used = True
     for block_name in cfg:
-        if block_name == "myentry" and not flag:
+        if block_name == "myentry" and not used and cfg["myentry"][0]["op"] == "jmp":
             continue
         instrs.append({"label": block_name})
         instrs.extend(cfg[block_name])
