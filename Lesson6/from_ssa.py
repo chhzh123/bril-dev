@@ -10,7 +10,7 @@ def from_ssa(cfg):
         block = cfg[block_name]
         new_instr = []
         for instr in block:
-            if "op" in instr and instr["op"] == "phi":
+            if "op" in instr and instr["op"] in ["phi", "phi_"]:
                 dest = instr["dest"]
                 for i, label in enumerate(instr["labels"]):
                     if instr["args"][i] != "__undefined":
