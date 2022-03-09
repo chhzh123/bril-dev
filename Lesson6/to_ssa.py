@@ -112,7 +112,10 @@ def to_ssa(cfg):
         if block_name == "myentry" and not flag:
             continue
         instrs.append({"label": block_name})
-        instrs.extend(cfg[block_name])
+        for instr in cfg[block_name]:
+            if "op" in instr and instr["op"] == "phi_": # fix phi_
+                instr["op"] = "phi"
+            instrs.append(instr)
     return instrs
 
 if __name__ == "__main__":
