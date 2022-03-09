@@ -7,16 +7,16 @@
 .entry:
   jmp .loop.header;
 .loop.header:
-  v.0: int = phi __undefined v.1 .entry .loop.next;
+  v.0: int = phi __undefined v.2 .entry .loop.next;
   br infinite .loop.body .loop.end;
 .loop.body:
   br print .loop.print .loop.next;
 .loop.print:
-  v.2: int = call @func;
-  print v.2;
+  v.1: int = call @func;
+  print v.1;
   jmp .loop.next;
 .loop.next:
-  v.1: int = phi v.0 v.2 .loop.body .loop.print;
+  v.2: int = phi v.0 v.1 .loop.body .loop.print;
   jmp .loop.header;
 .loop.end:
   ret;
