@@ -1,0 +1,16 @@
+@main(a0: int, b0: int, c0: int, d0: int, e0: int, f0: int) {
+.B1:
+  u0: int = add a0 b0;
+  v0: int = add c0 d0;
+  w0: int = add e0 f0;
+  cond: bool = const true;
+  br cond .B2 .B3;
+.B2:
+  jmp .B4;
+.B3:
+  jmp .B4;
+.B4:
+  x2: int = phi v0 w0 .B2 .B3;
+  z0: int = add u0 x2;
+  ret;
+}
