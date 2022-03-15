@@ -1,6 +1,7 @@
 #include "llvm/IR/Function.h"
 #include "llvm/Pass.h"
 #include "llvm/Support/raw_ostream.h"
+#include "llvm/IR/Instructions.h"
 
 #include "llvm/IR/LegacyPassManager.h"
 #include "llvm/Transforms/IPO/PassManagerBuilder.h"
@@ -17,13 +18,11 @@ struct SkeletonPass : public FunctionPass {
     for (Function::iterator bb = F.begin(), e = F.end(); bb != e; ++bb) {
       for (BasicBlock::iterator instr = bb->begin(), e = bb->end(); instr != e; ++instr) {
         // https://llvm.org/doxygen/classllvm_1_1Instruction.html
-        if (std::string(instr->getOpcodeName()) == "getelementptr")
-          instr->dump();
-        // if (opCounter.find(i->getOpcodeName()) == opCounter.end()) {
-        //   opCounter[i->getOpcodeName()] = 1;
-        // } else {
-        //   opCounter[i->getOpcodeName()] += 1;
-        // }
+        // if (std::string(instr->getOpcodeName()) == "getelementptr")
+        if (auto *load = dyn_cast<LoadInst>(instr)) {
+          load->dump();
+          load->getPointerOperand()->dump();
+        }
       }
     }
     return false;
