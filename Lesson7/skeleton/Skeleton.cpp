@@ -18,10 +18,13 @@ struct SkeletonPass : public FunctionPass {
     for (Function::iterator bb = F.begin(), e = F.end(); bb != e; ++bb) {
       for (BasicBlock::iterator instr = bb->begin(), e = bb->end(); instr != e; ++instr) {
         // https://llvm.org/doxygen/classllvm_1_1Instruction.html
-        // if (std::string(instr->getOpcodeName()) == "getelementptr")
-        if (auto *load = dyn_cast<LoadInst>(instr)) {
-          load->dump();
-          load->getPointerOperand()->dump();
+        // ref: llvm/lib/Transforms/Scalar/LoopFlatten.cpp
+        if (auto *GEP = dyn_cast<GetElementPtrInst>(instr)) {
+          for (Value *GEPUser : instr->users()) {
+            auto *GEPUserInst = cast<Instruction>(GEPUser);
+            if (isa<LoadInst>(GEPUserInst) || isa<StoreInst>(GEPUserInst))
+              GEPUserInst->dump();
+          }
         }
       }
     }
