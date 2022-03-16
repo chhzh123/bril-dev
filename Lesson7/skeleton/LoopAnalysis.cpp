@@ -56,7 +56,8 @@ struct LoopAnalysisPass : public FunctionPass {
     for (Loop *L : LI) {
       errs() << "\nLoop " << cnt++ << ":\n";
       for (auto bb = L->block_begin(), be = L->block_end(); bb != be; ++bb) {
-        for (BasicBlock::iterator instr = (*bb)->begin(), ee = (*bb)->end(); instr != ee; ++instr) {
+        for (BasicBlock::iterator instr = (*bb)->begin(), ee = (*bb)->end();
+             instr != ee; ++instr) {
           // https://llvm.org/doxygen/classllvm_1_1Instruction.html
           // ref: llvm/lib/Transforms/Scalar/LoopFlatten.cpp
           if (auto *GEP = dyn_cast<GetElementPtrInst>(instr)) {
