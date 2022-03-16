@@ -20,35 +20,31 @@ make opt
 https://www.cs.cornell.edu/courses/cs6120/2022sp/lesson/8/
 -->
 
-In this task, I implemented a **memory access analysis** pass for nested loops. I compiled and run my pass with the latest **LLVM 14** branch using the new [pass manager](https://blog.llvm.org/posts/2021-03-26-the-new-pass-manager/). My code can be found [here](https://github.com/chhzh123/bril-dev/blob/master/Lesson7/skeleton/LoopAnalysis.cpp).
+In this task, I implemented a **memory access analysis** pass for nested loops. I compiled and run my pass using the latest [**LLVM 14**](https://github.com/llvm/llvm-project/releases/tag/llvmorg-14.0.0-rc1) branch with the new [pass manager](https://blog.llvm.org/posts/2021-03-26-the-new-pass-manager/). My code can be found [here](https://github.com/chhzh123/bril-dev/blob/master/Lesson7/skeleton/LoopAnalysis.cpp).
 
 
 ## Background
-When the C/C++ programs are lowered to LLVM IR, they lose high-level information of loops and memory accesses. The loops are translated into several basic blocks (preheader, body, and latch, etc.). Also, memory access like `A[i+1]` may be translated into several lines of code below, which poses like polyhedral analysis. Thus, in order to better analysis the memory dependency and optimize the access pattern, we need to first extract the load/store instructions with correct indices. In this task, I just inspect the LLVM IR and output the original array and the indices. Since this is just the preparation for the task in Lesson 8, it is not that fancy but just simple arithmetic operation propagation work.
+When C/C++ programs are lowered to LLVM IR, they lose high-level information of loops and memory accesses. The loops are translated into several basic blocks (preheader, body, latch, etc.). Memory access like `A[i+1]` may be translated into several lines of code below, which loses original index representation and poses challenges on implementing memory-related optimization using techniques like [polyhedral analysis](https://en.wikipedia.org/wiki/Polytope_model). Thus, in order to better analyze the memory dependency and optimize the access patterns in a loop nest, we need to first extract the load/store instructions with correct indices. In this task, I inspected LLVM IR and output the original array and indices. Since this is the preparation for the task in Lesson 8, it is not that fancy but just simple arithmetic expression propagation in the LLVM framework.
 
 ```llvm
-  %12 = load i32, i32* %i, align 4
-  %add13 = add nsw i32 %12, 1
-  %idxprom14 = sext i32 %add13 to i64
-  %arrayidx15 = getelementptr inbounds [10 x i32], [10 x i32]* %A, i64 0, i64 %idxprom14
-  %13 = load i32, i32* %arrayidx15, align 4
+  %12 = load i32, i32* %i, align 4
+  %add13 = add nsw i32 %12, 1
+  %idxprom14 = sext i32 %add13 to i64
+  %arrayidx15 = getelementptr inbounds [10 x i32], [10 x i32]* %A, i64 0, i64 %idxprom14
+  %13 = load i32, i32* %arrayidx15, align 4
 ```
 
 
 ## Implementation
-To find the loops in LLVM IR, I reused the `LoopInfoWrapperPass`.
-and I traverse the basic block and instructions inside each loop.
+To find the loops in LLVM IR, I reuse the `LoopInfoWrapperPass`. For each loop, I traverse the basic block and instructions inside it. I first find the [`getelementptr`](https://blog.yossarian.net/2020/09/19/LLVMs-getelementptr-by-example) instruction, which is hard to understand the parameters in the first place, but actually its operands are just depicting the data types and the pointers to some specific positions in an array. For each `getelementptr`, I get its users. If the user is a load/store instruction, I traverse back from the `%idx` to get the complete expression of the index.
 
-I first find the [`getelementptr`](https://blog.yossarian.net/2020/09/19/LLVMs-getelementptr-by-example) instruction, which is hard to understand the parameters in the first place. But actually its operands are just depicting the data type and the pointer to some specific position in an array.
-For each `getelementptr`, I get its users. If the user is load/store instruction, then I traverse back from the `%idx` to get the complete expression of the index.
-
-I created a instruction visitor class `InstVisitor` and implemented a dispatcher method `visit` to traverse back from the final expression. This is essentially an inorder tree traversal.
+I created an instruction visitor class `InstVisitor` and implemented a dispatching method `visit` to traverse back from the final expression based on different arithmetic instructions, which is essentially doing an inorder tree traversal.
 
 
 ## Test
-To run my pass for real program, I first use `clang` to generate bytecode (`*.ll`) and use `opt` to load the library. Moreover, `-enable-new-pm=0` should be set for the new pass manager.
+To run my pass for real programs, I first use `clang` to generate bytecode (`*.ll`) and use `opt` to load the library. Moreover, `-enable-new-pm=0` should be set for the new pass manager.
 
-The following test program shows several memory access patterns.
+The following test program shows several different memory access patterns. Currently, I only consider 1D arrays, so high-dimensional arrays should be firstly flattened into 1D.
 
 ```cpp
 int main() {
@@ -112,10 +108,10 @@ Store:   store i32 %add, i32* %arrayidx4, align 4
 Original: C[i]
 ```
 
-We can see my pass exactly captures the four loops in the program (in a reversed order), and recover the original arrays and indices for load/store instructions, even for complex indices or multi-dimensional nested loops. Notice some of the variables are renamed by LLVM, so there exists `i37` or `k45` names in the result, but this does not affect the correctness.
+We can see my pass exactly captures the four loops in the program (in a reversed order), and recovers the original arrays and indices for load/store instructions, even for complex indices or multi-dimensional nested loops. Notice some of the variables are renamed by LLVM, so there exist variable names like `i37` or `k45` in the result, but this does not affect the correctness.
 
 
 ## Discussions
-Though I finally made my pass work, I still have to say the documentation of LLVM is reeeeally terrible. I thought the [tutorial](https://llvm.org/docs/WritingAnLLVMPass.html) page should reflect the latest changes, but it didn't and was somehow misleading. I could only find how to get the new pass manager work on a [Google discussion thread](https://groups.google.com/g/llvm-dev/c/kQYV9dCAfSg)! Moreover, even the doxygen provides the class method signature, it is still hard to understand what the methods are used for and how to use them. I pulled a llvm-project and directly search some methods. I found looking at real code snippet is more understandable than looking at the documentation.
+Though I finally made my pass work, I still have to say, the documentation of LLVM is reeeeally terrible. In the very beginning, I thought the [tutorial](https://llvm.org/docs/WritingAnLLVMPass.html) page should reflect the latest changes. However, it didn't, and was even somehow misleading. After searching on Google, I could only find how to get the new pass manager to work on a [discussion thread](https://groups.google.com/g/llvm-dev/c/kQYV9dCAfSg)! Moreover, even the doxygen provides the class method signature, it is still hard to understand what the methods are used for and how to use them. Actually I found pulling the whole llvm-project and directly searching some methods offline may be more helpful. Looking at real code snippets with contexts before and behind function calls is much easier to understand than directly looking at the documentation.
 
-Since I've been working on a [MLIR](https://mlir.llvm.org/) project for several months, I can see lots of similarity between MLIR and LLVM, including how they traverse the function body and how the facilities look like. But compared with the affine/scf dialects in MLIR, the LLVM IR is too low-level. At first, I want to do some loop optimizations based on LLVM, but I found it was hard to print out readable code of loops. I can not generate the IR back to C/C++. I would say MLIR does raise the abstraction level and make optimizations much easier to be implemented. LLVM is still closer to the machine, so the abstraction is also relateively low-level.
+Since I've been working on a [MLIR](https://mlir.llvm.org/) project for several months, I can see lots of similarities between MLIR and LLVM, including how they traverse the function body and how the facilities look like. But I think the biggest difference between them may be the abstraction level. While LLVM IR is low-level and closed to real machines, many MLIR dialects are high-level and provide more facilities to operate on loops and memory accesses. At first, I wanted to do some real loop optimizations based on LLVM, but I found it was hard to print out readable code of loops and I could not easily convert the IR back to C/C++. However, with the affine/scf dialect in MLIR, we can dump the for loops in a human-readable C-like way, and it is also more intuitive to view and access the loops when doing optimizations like interchanging or fusing. After some programming practice in LLVM and MLIR, I kind of understand the rationale behind several layers of IR abstraction in nowadays deep learning compilers. Some machine-dependent optimizations are easier to express in a low-level abstraction, while loop or memory optimizations are easier to be implemented with a high-level IR, so progressive lowering is helpful to realize the optimizations in a suitable abstraction and gradually add hardware details to the program.
