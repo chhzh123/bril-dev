@@ -6,12 +6,12 @@ int main() {
     for (int i = 0; i < 10; ++i) {
         C[i] = A[i] + B[i];
     }
-    // stencil
+    // 1D stencil
     for (int j = 1; j < 9; ++j) {
         B[j] = A[j - 1] + A[j] + A[j + 1];
     }
     // complex indices
-    for (int k = 1; k < 4; ++k) {
+    for (int k = 1; k < 3; ++k) {
         C[k * 2] = A[k * 3 + 1] + B[k / 2];
     }
     // 2D: matmul
