@@ -1,6 +1,5 @@
 add_library(SkeletonPass MODULE
     # List your source files here.
-    Skeleton.cpp
     LoopAnalysis.cpp
 )
 
