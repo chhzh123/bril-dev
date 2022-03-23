@@ -9,16 +9,13 @@
 #include "llvm/Transforms/IPO/PassManagerBuilder.h"
 #include "llvm/Transforms/Scalar.h"
 #include "llvm/Transforms/Utils.h"
+#include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include "llvm/Transforms/Utils/LoopSimplify.h"
 
 using namespace llvm;
 
 namespace {
 
-/// Update LoopInfo, after interchanging. NewInner and NewOuter refer to the
-/// new inner and outer loop after interchanging: NewInner is the original
-/// outer loop and NewOuter is the original inner loop.
-///
 /// Before interchanging, we have the following structure
 /// Outer preheader
 //  Outer header
@@ -42,13 +39,6 @@ struct LoopAnalysisPass : public FunctionPass {
   static char ID;
   LoopAnalysisPass() : FunctionPass(ID) {}
 
-  // get loop body
-  // BasicBlock *getLoopBody(BasicBlock *bb) {
-  //   for (BasicBlock* succ : successors(bb)) {
-  //     return succ;
-  //   }
-  // }
-
   // update branch operand
   void updateBranchOperand(BranchInst *BI, BasicBlock *OldBB,
                            BasicBlock *NewBB) {
@@ -58,16 +48,15 @@ struct LoopAnalysisPass : public FunctionPass {
       }
   }
 
-  virtual bool runOnFunction(Function &F) {
+  void reorder(Function &F, int OuterLoopIdx, int InnerLoopIdx) {
     // llvm/Analysis/LoopInfo.h
-    auto &LI = getAnalysis<LoopInfoWrapperPass>().getLoopInfo();
+    auto *LI = &getAnalysis<LoopInfoWrapperPass>().getLoopInfo();
+    auto *DT = &getAnalysis<DominatorTreeWrapperPass>().getDomTree();
     int cnt = 0;
     Loop *OuterLoop = nullptr;
     Loop *InnerLoop = nullptr;
-    int OuterLoopIdx = 1;
-    int InnerLoopIdx = 2;
     // llvm/Analysis/LoopInfo.h
-    for (Loop *L : LI.getLoopsInPreorder()) {
+    for (Loop *L : LI->getLoopsInPreorder()) {
       if (OuterLoopIdx == cnt) {
         OuterLoop = L;
       } else if (InnerLoopIdx == cnt) {
@@ -76,9 +65,11 @@ struct LoopAnalysisPass : public FunctionPass {
       cnt++;
     }
     // https://llvm.org/doxygen/classllvm_1_1BasicBlock.html
-    llvm::errs() << "\n";
     BasicBlock *InnerLoopPreheader = InnerLoop->getLoopPreheader();
     BasicBlock *OuterLoopPreheader = OuterLoop->getLoopPreheader();
+    if (OuterLoopPreheader->isEntryBlock())
+      OuterLoopPreheader = SplitBlock(
+          OuterLoopPreheader, OuterLoopPreheader->getTerminator(), DT, LI);
     BasicBlock *InnerLoopHeader = InnerLoop->getHeader();
     BasicBlock *OuterLoopHeader = OuterLoop->getHeader();
     BasicBlock *InnerLoopLatch = InnerLoop->getLoopLatch();
@@ -130,13 +121,19 @@ struct LoopAnalysisPass : public FunctionPass {
                         OuterLoopExitSuccessor);
     updateBranchOperand(OuterLoopExitBI, OuterLoopExitSuccessor,
                         InnerLoopLatch);
+  }
 
+  virtual bool runOnFunction(Function &F) {
+    reorder(F, 1, 2);
+    // reorder(F, 2, 3);
+    // reorder(F, 1, 3);
     F.dump();
     return true;
   }
 
   void getAnalysisUsage(AnalysisUsage &AU) const override {
     AU.addRequired<LoopInfoWrapperPass>();
+    AU.addRequired<DominatorTreeWrapperPass>();
     AU.addPreserved<LoopInfoWrapperPass>();
   }
 };
