@@ -6,7 +6,7 @@
 #include "llvm/Transforms/Scalar.h"
 #include "llvm/Transforms/Utils.h"
 #include "llvm/Transforms/Utils/LoopSimplify.h"
-
+#include "llvm/IR/CFG.h"
 #include "llvm/IR/LegacyPassManager.h"
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/Transforms/IPO/PassManagerBuilder.h"
@@ -73,14 +73,21 @@ struct LoopAnalysisPass : public FunctionPass {
   static char ID;
   LoopAnalysisPass() : FunctionPass(ID) {}
 
+  // get loop body
+  // BasicBlock *getLoopBody(BasicBlock *bb) {
+  //   for (BasicBlock* succ : successors(bb)) {
+  //     return succ;
+  //   }
+  // }
+
   virtual bool runOnFunction(Function &F) {
     // llvm/Analysis/LoopInfo.h
     auto &LI = getAnalysis<LoopInfoWrapperPass>().getLoopInfo();
     int cnt = 0;
     Loop* OuterLoop = nullptr;
     Loop* InnerLoop = nullptr;
-    int OuterLoopIdx = 0;
-    int InnerLoopIdx = 1;
+    int OuterLoopIdx = 1;
+    int InnerLoopIdx = 2;
     // llvm/Analysis/LoopInfo.h
     for (Loop *L : LI.getLoopsInPreorder()) {
       llvm::errs() << L->getHeader()->getName() << "\n";
@@ -93,11 +100,39 @@ struct LoopAnalysisPass : public FunctionPass {
       }
       cnt++;
     }
-
+    // https://llvm.org/doxygen/classllvm_1_1BasicBlock.html
+    llvm::errs() << "\n";
+    BasicBlock *InnerLoopPreheader = InnerLoop->getLoopPreheader();
+    BasicBlock *OuterLoopPreheader = OuterLoop->getLoopPreheader();
     BasicBlock *InnerLoopHeader = InnerLoop->getHeader();
     BasicBlock *OuterLoopHeader = OuterLoop->getHeader();
-    InnerLoopHeader->dump();
-    OuterLoopHeader->dump();
+    BasicBlock *InnerLoopLatch = InnerLoop->getLoopLatch();
+    BasicBlock *OuterLoopLatch = OuterLoop->getLoopLatch();
+    BasicBlock *InnerLoopExit = InnerLoop->getExitBlock();
+    BasicBlock *OuterLoopExit = OuterLoop->getExitBlock();
+    BasicBlock *InnerLoopBody = InnerLoopHeader->getNextNode();
+    InnerLoopLatch->dump();
+    InnerLoopExit->dump();
+    // move headers
+    InnerLoopHeader->moveBefore(OuterLoopHeader);
+    OuterLoopHeader->moveBefore(InnerLoopBody);
+    // move preheaders
+    InnerLoopPreheader->moveBefore(InnerLoopHeader);
+    OuterLoopPreheader->moveBefore(OuterLoopHeader);
+    // move exits
+    BasicBlock *OuterLoopExitNext = OuterLoopExit->getNextNode();
+    InnerLoopExit->moveBefore(OuterLoopExitNext);
+    InnerLoopLatch->moveBefore(InnerLoopExit);
+    OuterLoopExit->moveBefore(InnerLoopLatch);
+    OuterLoopLatch->moveBefore(OuterLoopExit);
+    F.dump();
+
+    // update branch op
+    // for (Use &Op : BI->operands())
+    //   if (Op == OldBB) {
+    //     Op.set(NewBB);
+    //     Changed = true;
+    //   }
     return true;
   }
 
