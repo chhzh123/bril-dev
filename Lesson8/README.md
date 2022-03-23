@@ -22,13 +22,13 @@ cd ../test
 make opt
 ```
 
-In this task, I implemented the loop reordering/interchanging pass in LLVM. My code can be found [here](https://github.com/chhzh123/bril-dev/blob/master/Lesson8/skeleton/LoopAnalysis.cpp). I reused some facilities from my loop analysis pass in [Lesson 7](https://github.com/chhzh123/bril-dev/blob/master/Lesson7), and again compiled and run the program using [**LLVM 14**](https://github.com/llvm/llvm-project/releases/tag/llvmorg-14.0.0-rc1) with the new [pass manager](https://blog.llvm.org/posts/2021-03-26-the-new-pass-manager/).
+In this task, I implemented a loop reordering/interchanging pass in LLVM. My code can be found [here](https://github.com/chhzh123/bril-dev/blob/master/Lesson8/skeleton/LoopAnalysis.cpp). I reused some facilities from my loop analysis pass in [Lesson 7](https://github.com/chhzh123/bril-dev/blob/master/Lesson7), and again compiled and run the program using [**LLVM 14**](https://github.com/llvm/llvm-project/releases/tag/llvmorg-14.0.0-rc1) with the new [pass manager](https://blog.llvm.org/posts/2021-03-26-the-new-pass-manager/).
 
 
 <!-- https://llvm.org/doxygen/LoopInterchange_8cpp_source.html -->
 
 ## Implementation
-At first I thought it should be easy to interchange two loops just like cutting and pasting the for-loop header in an IDE, but later I found it was very troublesome in LLVM IR. Since a loop is orgainized as several basic blocks as shown in the following figure (source from [LLVM Tutorial](https://llvm.org/docs/LoopTerminology.html#id7)), we need to carefully move those blocks and change their inter-relationship.
+At first, I thought it would be easy to interchange two loops just like cutting and pasting the for-loop header in an IDE, but later I found it was very troublesome to do it in LLVM IR. Since a loop is organized as several basic blocks as shown in the following figure (source from [LLVM Tutorial](https://llvm.org/docs/LoopTerminology.html#id7)), we need to carefully move those blocks and change their inter-relationship.
 
 ![](https://llvm.org/docs/_images/loop-terminology.svg)
 
@@ -36,10 +36,10 @@ The inputs of my reordering pass are two loops (outer loop and inner loop). I fi
 
 There is one more tricky thing here. If the loop to be reordered is the top-level loop, its preheader may be the entry block of the function. In this case, we need to separate the block and create a new preheader block for that loop. Also, the exit block may also connect with the following blocks, so it needs to be separated as well.
 
-For programming interface, I allow users to specify which loops to be interchanged and can do mulitple interchanges in one pass.
+For the programming interface, I allow users to specify which loops to be interchanged and can do multiple interchanges in one pass.
 
 ## Evaluation
-As a golden test example, I tested the three-nested-loop GEMM on my machine, and consider 6 possible loop permutations to see the performance of different traversal orders. I set the matrix size to be 1024x1024, and my CPU is Intel Xeon Silver 4214 with 16.5MB L3 cache.
+As a golden test case, I tested the three-nested-loop GEMM on my machine, and consider 6 possible loop permutations to see the performance of different traversal orders. I set the matrix size to be 1024x1024, and my CPU is Intel Xeon Silver 4214 with 16.5MB L3 cache.
 ```cpp
 for (int i = 0; i < SIZE; ++i)
     for (int j = 0; j < SIZE; ++j)
@@ -47,8 +47,8 @@ for (int i = 0; i < SIZE; ++i)
             C[i][j] += A[i][k] * B[k][j];
 ```
 
-The results are shown below, and the speedup are normalized by the time of the original `ijk` order.
-| Order | Time (us) | Speedup |
+The results are shown below. The speedups are normalized by the time of the original `ijk` order.
+| Traversal Order | Time (us) | Speedup |
 | :-------: | :---: | :---: |
 | ijk | 5365352 | 1x |
 | ikj | 3041839 | 1.76x |
@@ -57,8 +57,7 @@ The results are shown below, and the speedup are normalized by the time of the o
 | kij | 3070182 | 1.75x | 
 | kji | 10926492 | 0.49x |
 
-We can obtain the following speedup comparison. The conclusion is the same as tue GEMM example (Fig 6.46) in the famous introductory book [CSAPP](https://csapp.cs.cmu.edu/).
-If the traversal order is the same as the data organization (`ikj`), there will be a large speedup due to the improved cache locality. This indirectly proves the correctness of my pass and shows the loop interchanging can indeed improve the performance of the program.
+Based on this table, we can obtain the following speedup comparison. The conclusion is the same as the GEMM example (Fig 6.46) in the famous introductory book [CSAPP](https://csapp.cs.cmu.edu/). If the traversal order is the same as how the data is organized (`ikj`), there will be a large speedup due to the improved cache locality. This also indirectly proves the correctness of my pass and shows loop interchanging can indeed improve the performance of the program.
 ```
-kij \~ ikj < ijk \~ jik < kji \~ jki
+kij ~ ikj < ijk ~ jik < kji ~ jki
 ```
