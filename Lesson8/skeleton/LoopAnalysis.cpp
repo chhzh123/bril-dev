@@ -8,6 +8,7 @@
 #include "llvm/Transforms/Utils/LoopSimplify.h"
 
 #include "llvm/IR/LegacyPassManager.h"
+#include "llvm/IR/BasicBlock.h"
 #include "llvm/Transforms/IPO/PassManagerBuilder.h"
 
 using namespace llvm;
@@ -45,6 +46,29 @@ private:
   std::string index = "";
 };
 
+/// Update LoopInfo, after interchanging. NewInner and NewOuter refer to the
+/// new inner and outer loop after interchanging: NewInner is the original
+/// outer loop and NewOuter is the original inner loop.
+///
+/// Before interchanging, we have the following structure
+/// Outer preheader
+//  Outer header
+//    Inner preheader
+//    Inner header
+//      Inner body
+//      Inner latch
+//   outer bbs
+//   Outer latch
+//
+// After interchanging:
+// Inner preheader
+// Inner header
+//   Outer preheader
+//   Outer header
+//     Inner body
+//     outer bbs
+//     Outer latch
+//   Inner latch
 struct LoopAnalysisPass : public FunctionPass {
   static char ID;
   LoopAnalysisPass() : FunctionPass(ID) {}
@@ -53,42 +77,27 @@ struct LoopAnalysisPass : public FunctionPass {
     // llvm/Analysis/LoopInfo.h
     auto &LI = getAnalysis<LoopInfoWrapperPass>().getLoopInfo();
     int cnt = 0;
-    for (Loop *L : LI) {
-      errs() << "\nLoop " << cnt++ << ":\n";
-      for (auto bb = L->block_begin(), be = L->block_end(); bb != be; ++bb) {
-        for (BasicBlock::iterator instr = (*bb)->begin(), ee = (*bb)->end();
-             instr != ee; ++instr) {
-          // https://llvm.org/doxygen/classllvm_1_1Instruction.html
-          // ref: llvm/lib/Transforms/Scalar/LoopFlatten.cpp
-          if (auto *GEP = dyn_cast<GetElementPtrInst>(instr)) {
-            for (Value *GEPUser : instr->users()) {
-              auto *GEPUserInst = cast<Instruction>(GEPUser);
-              if (isa<LoadInst>(GEPUserInst) || isa<StoreInst>(GEPUserInst)) {
-                if (isa<LoadInst>(GEPUserInst)) {
-                  errs() << "Load: ";
-                } else if (isa<StoreInst>(GEPUserInst)) {
-                  errs() << "Store: ";
-                }
-                GEPUserInst->dump();
-                // print original array
-                errs() << "Original: ";
-                errs() << GEP->getPointerOperand()->getName() << "[";
-                for (auto i = GEP->idx_begin(), e = GEP->idx_end(); i != e;
-                     ++i) {
-                  if (i == GEP->idx_begin())
-                    continue;
-                  InstVisitor visitor;
-                  visitor.visit(i->get());
-                  std::string str = visitor.getIndexString();
-                  errs() << str;
-                }
-                errs() << "]\n";
-              }
-            }
-          }
-        }
+    Loop* OuterLoop = nullptr;
+    Loop* InnerLoop = nullptr;
+    int OuterLoopIdx = 0;
+    int InnerLoopIdx = 1;
+    // llvm/Analysis/LoopInfo.h
+    for (Loop *L : LI.getLoopsInPreorder()) {
+      llvm::errs() << L->getHeader()->getName() << "\n";
+      if (OuterLoopIdx == cnt) {
+        llvm::errs() << "Outer Loop: " << L->getName() << "\n";
+        OuterLoop = L;
+      } else if (InnerLoopIdx == cnt) {
+        llvm::errs() << "Inner Loop: " << L->getName() << "\n";
+        InnerLoop = L;
       }
+      cnt++;
     }
+
+    BasicBlock *InnerLoopHeader = InnerLoop->getHeader();
+    BasicBlock *OuterLoopHeader = OuterLoop->getHeader();
+    InnerLoopHeader->dump();
+    OuterLoopHeader->dump();
     return true;
   }
 
