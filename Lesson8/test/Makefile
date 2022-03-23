@@ -10,3 +10,9 @@ test2.ll: test.c
 OPT_FLAGS = -enable-new-pm=0 -load ../build/skeleton/libSkeletonPass.so -loop-analysis
 test.opt.ll: test.ll
 	opt $(OPT_FLAGS) < test.ll > test.opt.ll
+
+test: test.opt.ll
+	lli test.opt.ll
+
+clean:
+	rm -f test test.ll test.opt.ll test2.ll
