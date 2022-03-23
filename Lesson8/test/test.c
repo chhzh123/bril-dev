@@ -1,20 +1,20 @@
 #include "stdio.h"
-#include "time.h"
+#include "sys/time.h"
 
-const int SIZE = 1024;
+#define SIZE 2048
+
 int A[SIZE][SIZE], B[SIZE][SIZE], C[SIZE][SIZE];
 
 int main() {
   // matmul
-  clock_t start, stop;
-  start = clock();
+  struct timeval stop, start;
+  gettimeofday(&start, NULL);
   for (int i = 0; i < SIZE; ++i)
     for (int j = 0; j < SIZE; ++j)
       for (int k = 0; k < SIZE; ++k)
         C[i][j] += A[i][k] * B[k][j];
-  stop = clock();
+  gettimeofday(&stop, NULL);
+  printf("took %lu us\n", (stop.tv_sec - start.tv_sec) * 1000000 + stop.tv_usec - start.tv_usec); 
   printf("passed\n");
-  printf("%6.8f\n", start);
-  printf("%6.8f\n", stop);
   return 0;
 }
