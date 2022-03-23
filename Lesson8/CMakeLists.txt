@@ -3,6 +3,7 @@ project(Skeleton)
 
 # support C++14 features used by LLVM 10.0.0
 set(CMAKE_CXX_STANDARD 14)
+set(LLVM_ENABLE_NEW_PASS_MANAGER ON)
 
 find_package(LLVM REQUIRED CONFIG)
 add_definitions(${LLVM_DEFINITIONS})
