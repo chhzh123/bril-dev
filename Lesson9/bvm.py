@@ -108,6 +108,8 @@ class VirtualMachine(object):
                         if not self.memory_usage[loc]:
                             raise RuntimeError("Double free")
                         self.memory_usage[loc] = False
+                elif instr["op"] == "ptradd":
+                    frame.data[instr["dest"]] = frame.data[instr["args"][0]] + frame.data[instr["args"][1]]
                 elif instr["op"] == "load":
                     frame.data[instr["dest"]] = self.memory[frame.data[instr["args"][0]]]
                 elif instr["op"] == "store":
@@ -119,7 +121,10 @@ class VirtualMachine(object):
                     res = self.eval_frame(Frame(instr["funcs"][0], self.funcs[instr["funcs"][0]], args))
                     frame.data[instr["dest"]] = res
                 elif instr["op"] == "ret":
-                    return frame.data[instr["args"][0]]
+                    if "args" in instr:
+                        return frame.data[instr["args"][0]]
+                    else:
+                        return
                 elif instr["op"] == "print":
                     print(frame.data[instr["args"][0]])
                 else:
