@@ -54,7 +54,13 @@ class VirtualMachine(object):
         args = {}
         if "args" in self.main:
             for i, arg in enumerate(self.main["args"]):
-                args[arg] = input_args[i]
+                if arg["type"] in ["int", "bool"]:
+                    val = int(input_args[i])
+                elif arg["type"] == "float":
+                    val = float(input_args[i])
+                else:
+                    raise RuntimeError("Not supported types")
+                args[arg["name"]] = val
         self.eval_frame(Frame("main", self.funcs["main"], args))
 
     def eval_frame(self, frame) -> None:
@@ -97,6 +103,7 @@ class VirtualMachine(object):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Process command line arguments')
     parser.add_argument('-f', dest='file', default="", help='get input file')
+    parser.add_argument('args', nargs='*')
     args = parser.parse_args()
     if args.file != "":
         with open(args.file, "r") as infile:
