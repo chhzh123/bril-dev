@@ -46,15 +46,22 @@ class VirtualMachine(object):
         funcs_map = {}
         for func in self.funcs:
             funcs_map[func["name"]] = func["instrs"]
+            if func["name"] == "main":
+                self.main = func
         self.funcs = funcs_map
 
     def eval(self):
-        self.eval_frame(Frame("main", self.funcs["main"], {}))
+        args = {}
+        if "args" in self.main:
+            for i, arg in enumerate(self.main["args"]):
+                args[arg] = input_args[i]
+        self.eval_frame(Frame("main", self.funcs["main"], args))
 
     def eval_frame(self, frame) -> None:
         pc = 0
         while pc < len(frame.instrs):
             instr = frame.instrs[pc]
+            # print(frame.data)
             # print(instr)
             pc += 1
             if "label" in instr:
@@ -74,9 +81,13 @@ class VirtualMachine(object):
                     else: # false
                         pc = frame.blocks[instr["labels"][1]]
                 elif instr["op"] == "call":
-                    self.eval_frame(Frame(instr["funcs"][0], self.funcs[instr["funcs"][0]], {}))
+                    args = {}
+                    for arg in instr["args"]:
+                        args[arg] = frame.data[arg]
+                    res = self.eval_frame(Frame(instr["funcs"][0], self.funcs[instr["funcs"][0]], args))
+                    frame.data[instr["dest"]] = res
                 elif instr["op"] == "ret":
-                    return
+                    return frame.data[instr["args"][0]]
                 elif instr["op"] == "print":
                     print(frame.data[instr["args"][0]])
                 else:
@@ -90,8 +101,10 @@ if __name__ == "__main__":
     if args.file != "":
         with open(args.file, "r") as infile:
             program = json.load(infile)
+        input_args = sys.argv[3:]
     else:
         program = json.loads(''.join(sys.stdin.readlines())) # already in json format
+        input_args = sys.argv
 
     bvm = VirtualMachine(program)
     bvm.eval()
