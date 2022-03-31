@@ -11,8 +11,8 @@ This repository contains experimental tools of the [Bril](https://github.com/sam
 * Lesson 5: [Global Analysis](Lesson5)
 * Lesson 6: [SSA](Lesson6)
 * Lesson 7: [LLVM](Lesson7)
-* Lesson 8: [Loop Optimization](Lesson 8)
-* Lesson 9: [Memory Management](Lesson 9)
+* Lesson 8: [Loop Optimization](Lesson8)
+* Lesson 9: [Memory Management](Lesson9)
 
 
 ## Build
