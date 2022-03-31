@@ -143,6 +143,9 @@ class VirtualMachine(object):
                         frame.data[instr["dest"]] = res
                 elif instr["op"] == "ret":
                     if "args" in instr:
+                        for var in frame.data:
+                            if var in self.allocated and var != instr["args"][0]:
+                                self.decrease_reference_count(frame.data[var], var)
                         return frame.data[instr["args"][0]]
                     else:
                         for var in frame.data:
