@@ -1,0 +1,58 @@
+{
+    "functions": [
+      {
+        "instrs": [
+          {
+            "dest": "ten",
+            "op": "const",
+            "type": "int",
+            "value": 10
+          },
+          {
+            "dest": "four",
+            "op": "const",
+            "type": "int",
+            "value": 4
+          },
+          {
+            "args": [
+              "ten"
+            ],
+            "dest": "myptr",
+            "op": "alloc",
+            "type": {
+              "ptr": "int"
+            }
+          },
+          {
+            "args": [
+              "myptr",
+              "four"
+            ],
+            "op": "store"
+          },
+          {
+            "args": [
+              "myptr"
+            ],
+            "dest": "v",
+            "op": "load",
+            "type": "int"
+          },
+          {
+            "args": [
+              "v"
+            ],
+            "op": "print"
+          },
+          {
+            "args": [
+              "myptr"
+            ],
+            "op": "free"
+          }
+        ],
+        "name": "main"
+      }
+    ]
+  }
