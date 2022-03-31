@@ -1,4 +1,3 @@
-from mimetypes import init
 import sys
 import json
 import argparse
