@@ -3,6 +3,8 @@ import sys
 import json
 import argparse
 
+MEMORY_SIZE = 4096
+
 class Frame(object):
 
     def __init__(self, name, instrs, initial_data = {}) -> None:
@@ -49,6 +51,10 @@ class VirtualMachine(object):
             if func["name"] == "main":
                 self.main = func
         self.funcs = funcs_map
+        self.memory = [0] * MEMORY_SIZE
+        self.memory_usage = [False] * MEMORY_SIZE
+        self.memory_ptr = 0
+        self.allocated = {} # var->memory_size
 
     def eval(self):
         args = {}
@@ -62,6 +68,7 @@ class VirtualMachine(object):
                     raise RuntimeError("Not supported types")
                 args[arg["name"]] = val
         self.eval_frame(Frame("main", self.funcs["main"], args))
+        self.detect_memory_leak()
 
     def eval_frame(self, frame) -> None:
         pc = 0
@@ -86,6 +93,25 @@ class VirtualMachine(object):
                         pc = frame.blocks[instr["labels"][0]]
                     else: # false
                         pc = frame.blocks[instr["labels"][1]]
+                elif instr["op"] == "alloc": # return the address
+                    frame.data[instr["dest"]] = self.memory_ptr
+                    self.memory_ptr += frame.data[instr["args"][0]]
+                    self.allocated[instr["dest"]] = frame.data[instr["args"][0]]
+                    if self.memory_ptr > MEMORY_SIZE:
+                        raise RuntimeError("Out of memory")
+                    for loc in range(frame.data[instr["dest"]], self.memory_ptr):
+                        self.memory_usage[loc] = True
+                elif instr["op"] == "free":
+                    ptr = frame.data[instr["args"][0]]
+                    size = self.allocated[instr["args"][0]]
+                    for loc in range(ptr, ptr+size):
+                        if not self.memory_usage[loc]:
+                            raise RuntimeError("Double free")
+                        self.memory_usage[loc] = False
+                elif instr["op"] == "load":
+                    frame.data[instr["dest"]] = self.memory[frame.data[instr["args"][0]]]
+                elif instr["op"] == "store":
+                    self.memory[frame.data[instr["args"][0]]] = frame.data[instr["args"][1]]
                 elif instr["op"] == "call":
                     args = {}
                     for arg in instr["args"]:
@@ -99,6 +125,10 @@ class VirtualMachine(object):
                 else:
                     raise RuntimeError("Unknown instruction: {}".format(instr["op"]))
 
+    def detect_memory_leak(self):
+        for loc in range(MEMORY_SIZE):
+            if self.memory_usage[loc]:
+                raise RuntimeError("Memory leak at loc {}".format(loc))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Process command line arguments')
