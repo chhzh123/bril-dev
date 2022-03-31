@@ -31,6 +31,10 @@ class Frame(object):
             self.data[instr["dest"]] = self.data[instr["args"][0]] * self.data[instr["args"][1]]
         elif instr["op"] == "div":
             self.data[instr["dest"]] = self.data[instr["args"][0]] / self.data[instr["args"][1]]
+        elif instr["op"] == "or":
+            self.data[instr["dest"]] = self.data[instr["args"][0]] | self.data[instr["args"][1]]
+        elif instr["op"] == "and":
+            self.data[instr["dest"]] = self.data[instr["args"][0]] & self.data[instr["args"][1]]
 
     def eval_compare_op(self, instr) -> None:
         if instr["op"] == "lt":
@@ -39,6 +43,12 @@ class Frame(object):
             self.data[instr["dest"]] = self.data[instr["args"][0]] > self.data[instr["args"][1]]
         elif instr["op"] == "eq":
             self.data[instr["dest"]] = self.data[instr["args"][0]] == self.data[instr["args"][1]]
+        elif instr["op"] == "ne":
+            self.data[instr["dest"]] = self.data[instr["args"][0]] != self.data[instr["args"][1]]
+        elif instr["op"] == "le":
+            self.data[instr["dest"]] = self.data[instr["args"][0]] <= self.data[instr["args"][1]]
+        elif instr["op"] == "ge":
+            self.data[instr["dest"]] = self.data[instr["args"][0]] >= self.data[instr["args"][1]]
 
 
 class VirtualMachine(object):
@@ -47,7 +57,7 @@ class VirtualMachine(object):
         self.funcs = program["functions"]
         funcs_map = {}
         for func in self.funcs:
-            funcs_map[func["name"]] = func["instrs"]
+            funcs_map[func["name"]] = func
             if func["name"] == "main":
                 self.main = func
         self.funcs = funcs_map
@@ -67,7 +77,7 @@ class VirtualMachine(object):
                 else:
                     raise RuntimeError("Not supported types")
                 args[arg["name"]] = val
-        self.eval_frame(Frame("main", self.funcs["main"], args))
+        self.eval_frame(Frame("main", self.funcs["main"]["instrs"], args))
         self.detect_memory_leak()
 
     def eval_frame(self, frame) -> None:
@@ -82,9 +92,11 @@ class VirtualMachine(object):
             elif "op" in instr:
                 if instr["op"] == "const":
                     frame.eval_const(instr)
-                elif instr["op"] in ["add", "sub", "mul", "div"]:
+                elif instr["op"] == "id":
+                    frame.data[instr["dest"]] = frame.data[instr["args"][0]]
+                elif instr["op"] in ["add", "sub", "mul", "div", "or", "and"]:
                     frame.eval_binary_op(instr)
-                elif instr["op"] in ["lt", "gt", "eq"]:
+                elif instr["op"] in ["lt", "gt", "eq", "ne", "le", "ge"]:
                     frame.eval_compare_op(instr)
                 elif instr["op"] == "jmp":
                     pc = frame.blocks[instr["labels"][0]]
@@ -116,10 +128,11 @@ class VirtualMachine(object):
                     self.memory[frame.data[instr["args"][0]]] = frame.data[instr["args"][1]]
                 elif instr["op"] == "call":
                     args = {}
-                    for arg in instr["args"]:
-                        args[arg] = frame.data[arg]
-                    res = self.eval_frame(Frame(instr["funcs"][0], self.funcs[instr["funcs"][0]], args))
-                    frame.data[instr["dest"]] = res
+                    for outer_arg, func_arg in zip(instr["args"], self.funcs[instr["funcs"][0]]["args"]):
+                        args[func_arg["name"]] = frame.data[outer_arg]
+                    res = self.eval_frame(Frame(instr["funcs"][0], self.funcs[instr["funcs"][0]]["instrs"], args))
+                    if "dest" in instr:
+                        frame.data[instr["dest"]] = res
                 elif instr["op"] == "ret":
                     if "args" in instr:
                         return frame.data[instr["args"][0]]
