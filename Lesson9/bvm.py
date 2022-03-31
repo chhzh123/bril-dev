@@ -135,8 +135,9 @@ class VirtualMachine(object):
                     self.memory[frame.data[instr["args"][0]]] = frame.data[instr["args"][1]]
                 elif instr["op"] == "call":
                     args = {}
-                    for outer_arg, func_arg in zip(instr["args"], self.funcs[instr["funcs"][0]]["args"]):
-                        args[func_arg["name"]] = frame.data[outer_arg]
+                    if "args" in instr:
+                        for outer_arg, func_arg in zip(instr["args"], self.funcs[instr["funcs"][0]]["args"]):
+                            args[func_arg["name"]] = frame.data[outer_arg]
                     res = self.eval_frame(Frame(instr["funcs"][0], self.funcs[instr["funcs"][0]]["instrs"], args))
                     if "dest" in instr:
                         frame.data[instr["dest"]] = res
