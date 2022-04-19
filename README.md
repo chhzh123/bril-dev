@@ -1,6 +1,6 @@
 # Bril-Dev
 
-This repository contains experimental tools of the [Bril](https://github.com/sampsyo/bril) compiler for Cornell [CS 6120](https://www.cs.cornell.edu/courses/cs6120/2022sp).
+This repository contains experimental tools of the [Bril](https://github.com/sampsyo/bril) compiler for Cornell [CS 6120 (Spring 2022)](https://www.cs.cornell.edu/courses/cs6120/2022sp).
 
 
 ## Lessons
@@ -12,7 +12,12 @@ This repository contains experimental tools of the [Bril](https://github.com/sam
 * Lesson 6: [SSA](Lesson6)
 * Lesson 7: [LLVM](Lesson7)
 * Lesson 8: [Loop Optimization](Lesson8)
-* Lesson 9: [Memory Management](Lesson9)
+* Lesson 9: Interprocedural Analysis
+* Lesson 10: Alias Analysis
+* Lesson 11: [Memory Management](Lesson11)
+* Lesson 12: [Dynamic Compilers](Lesson12)
+* Lesson 13: [Program Synthesis](Lesson13)
+* Lesson 14: Concurrency & Parallelism
 
 
 ## Build
