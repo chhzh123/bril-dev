@@ -69,8 +69,13 @@ class VirtualMachine(object):
         self.reference_count = {} # var->ref_count
         # speculative execution
         self.spec_data = {}
+        # JIT tracing
+        self.flag_trace = False
+        self.trace = []
+        self.call_ret = []
 
     def eval(self):
+        self.flag_trace = True # start from the front
         args = {}
         if "args" in self.main:
             for i, arg in enumerate(self.main["args"]):
@@ -83,11 +88,14 @@ class VirtualMachine(object):
                 args[arg["name"]] = val
         self.eval_frame(Frame("main", self.funcs["main"]["instrs"], args))
         self.detect_memory_leak()
+        self.print_trace()
 
     def eval_frame(self, frame) -> None:
         pc = 0
         while pc < len(frame.instrs):
             instr = frame.instrs[pc]
+            if self.flag_trace:
+                self.add_instr_to_trace(instr, frame)
             # print(frame.data)
             # print(instr)
             pc += 1
@@ -187,6 +195,37 @@ class VirtualMachine(object):
         for loc in range(MEMORY_SIZE):
             if self.memory_usage[loc]:
                 raise RuntimeError("Memory leak at loc {}".format(loc))
+
+    def add_instr_to_trace(self, instr, frame):
+        if "op" not in instr:
+            pass
+        elif instr["op"] == "jmp":
+            pass
+        elif instr["op"] == "br":
+            if frame.data[instr["args"][0]]: # true
+                jmp = instr["labels"][1]
+            else:
+                jmp = instr["labels"][0]
+            new_instr = {"op": "guard", "args": instr["args"], "labels": [jmp]} # false branch
+            self.trace.append(new_instr)
+        elif instr["op"] == "call": # interprocedural
+            func = self.funcs[instr["funcs"][0]]
+            for i, arg in enumerate(instr["args"]):
+                new_instr = {"op": "id", "dest": func["args"][i]["name"], "args": [arg], "type": func["args"][i]["type"]}
+                self.trace.append(new_instr)
+            self.call_ret.append((instr["dest"], instr["type"]))
+        elif instr["op"] == "ret":
+            new_instr = {"op": "id", "dest": self.call_ret[-1][0], "args": [instr["args"][0]], "type": self.call_ret[-1][1]}
+            self.call_ret.pop()
+            self.trace.append(new_instr)
+        else:
+            self.trace.append(instr)
+
+    def print_trace(self):
+        program = {}
+        program["functions"] = [{"instrs": self.trace, "args": self.main["args"], "name": "main"}]
+        with open("out.json", "w") as outfile:
+            outfile.write(json.dumps(program, indent=2))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Process command line arguments')
