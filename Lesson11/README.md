@@ -1,4 +1,4 @@
-# Lesson 9 - Memory Management
+# Lesson 11 - Memory Management
 
 * Implement a garbage collector for the Bril interpreter and the Bril memory extension, eliminating the need for the free instruction. Stick with something simple, like reference counting or a semispace collector.
 * Check that it works by running the benchmarks that use memory after deleting all their free instructions.
