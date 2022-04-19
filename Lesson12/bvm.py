@@ -67,6 +67,8 @@ class VirtualMachine(object):
         self.allocated = {} # var->memory_size
         # garbage collection
         self.reference_count = {} # var->ref_count
+        # speculative execution
+        self.spec_data = {}
 
     def eval(self):
         args = {}
@@ -153,6 +155,15 @@ class VirtualMachine(object):
                         return
                 elif instr["op"] == "print":
                     print(frame.data[instr["args"][0]])
+                # speculative execution
+                elif instr["op"] == "speculate":
+                    self.spec_data = frame.data.copy()
+                elif instr["op"] == "commit":
+                    self.spec_data = {} # done successfully
+                elif instr["op"] == "guard":
+                    if not frame.data[instr["args"][0]]: # exit from speculation
+                        frame.data = self.spec_data.copy() # recover data
+                        pc = frame.blocks[instr["labels"][0]]
                 else:
                     raise RuntimeError("Unknown instruction: {}".format(instr["op"]))
         # implicit return
