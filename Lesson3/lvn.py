@@ -65,8 +65,12 @@ def lvn(prg, iterative=False):
                         num, var = idx, lvn_table[idx][1]
                         if instr["op"] == "id": # copy propagation
                             # if the copied variable is a constant
-                            instr["op"] = value[0]
-                            instr["value"] = value[1]
+                            if var[0] == "const":
+                                instr["op"] = "const"
+                                instr["value"] = value[1]
+                            else:
+                                instr["op"] = value[0]
+                                instr["args"] = list(map(lambda i: lvn_table[i][1], value[1:]))
                         else: # replace instr with copy of var
                             instr["op"] = "id"
                             instr["args"] = [var]
