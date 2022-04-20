@@ -1,0 +1,170 @@
+{
+    "functions": [
+      {
+        "args": [
+          {
+            "name": "a",
+            "type": "int"
+          }
+        ],
+        "instrs": [
+          {
+            "dest": "one",
+            "op": "const",
+            "type": "int",
+            "value": 1
+          },
+          {
+            "args": [
+              "a",
+              "one"
+            ],
+            "dest": "b",
+            "op": "sub",
+            "type": "int"
+          },
+          {
+            "args": [
+              "b"
+            ],
+            "op": "ret"
+          }
+        ],
+        "name": "f",
+        "type": "int"
+      },
+      {
+        "args": [
+          {
+            "name": "a",
+            "type": "int"
+          }
+        ],
+        "instrs": [
+          {
+            "dest": "one",
+            "op": "const",
+            "type": "int",
+            "value": 1
+          },
+          {
+            "args": [
+              "a",
+              "one"
+            ],
+            "dest": "b",
+            "op": "add",
+            "type": "int"
+          },
+          {
+            "args": [
+              "b"
+            ],
+            "op": "ret"
+          }
+        ],
+        "name": "g",
+        "type": "int"
+      },
+      {
+        "args": [
+          {
+            "name": "x",
+            "type": "int"
+          }
+        ],
+        "instrs": [
+          {
+            "dest": "one",
+            "op": "const",
+            "type": "int",
+            "value": 1
+          },
+          {
+            "args": [
+              "x",
+              "one"
+            ],
+            "dest": "y",
+            "op": "add",
+            "type": "int"
+          },
+          {
+            "dest": "cst",
+            "op": "const",
+            "type": "int",
+            "value": 100
+          },
+          {
+            "args": [
+              "x",
+              "cst"
+            ],
+            "dest": "cond",
+            "op": "lt",
+            "type": "bool"
+          },
+          {
+            "args": [
+              "cond"
+            ],
+            "labels": [
+              "true",
+              "false"
+            ],
+            "op": "br"
+          },
+          {
+            "label": "true"
+          },
+          {
+            "args": [
+              "y"
+            ],
+            "dest": "z",
+            "funcs": [
+              "f"
+            ],
+            "op": "call",
+            "type": "int"
+          },
+          {
+            "labels": [
+              "exit"
+            ],
+            "op": "jmp"
+          },
+          {
+            "label": "false"
+          },
+          {
+            "args": [
+              "y"
+            ],
+            "dest": "z",
+            "funcs": [
+              "g"
+            ],
+            "op": "call",
+            "type": "int"
+          },
+          {
+            "labels": [
+              "exit"
+            ],
+            "op": "jmp"
+          },
+          {
+            "label": "exit"
+          },
+          {
+            "args": [
+              "z"
+            ],
+            "op": "print"
+          }
+        ],
+        "name": "main"
+      }
+    ]
+  }

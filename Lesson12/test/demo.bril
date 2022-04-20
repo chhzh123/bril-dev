@@ -1,0 +1,27 @@
+@f(a: int) :int {
+  one: int = const 1;
+  b: int = sub a one;
+  ret b;
+}
+
+@g(a: int) :int {
+  one: int = const 1;
+  b: int = add a one;
+  ret b;
+}
+
+@main(x: int) {
+  one: int = const 1;
+  y: int = add x one;
+  cst: int = const 100;
+  cond: bool = lt x cst;
+  br cond .true .false;
+.true:
+  z: int = call @f y;
+  jmp .exit;
+.false:
+  z: int = call @g y;
+  jmp .exit;
+.exit:
+  print z;
+}
