@@ -41,6 +41,8 @@ def lvn(prg, iterative=False):
 
             for i, instr in enumerate(func["instrs"]):
                 if "op" in instr:
+                    if instr["op"] in ["speculate", "commit", "guard"]:
+                        continue
                     # construct value
                     if instr["op"] == "id":
                         value = lvn_table[var2index[instr["args"][0]]][0]
@@ -70,7 +72,10 @@ def lvn(prg, iterative=False):
                                 instr["value"] = value[1]
                             else:
                                 instr["op"] = value[0]
-                                instr["args"] = list(map(lambda i: lvn_table[i][1], value[1:]))
+                                if value == "args":
+                                    instr["args"] = [var]
+                                else:
+                                    instr["args"] = list(map(lambda i: lvn_table[i][1], value[1:]))
                         else: # replace instr with copy of var
                             instr["op"] = "id"
                             instr["args"] = [var]
@@ -181,6 +186,25 @@ def lvn(prg, iterative=False):
                                 instr["op"] = "const"
                                 instr["value"] = result
                                 instr.pop("args", None)
+                            else:
+                                if op == "add":
+                                    first_v_item = lvn_table[var2index[all_variables[0]]]
+                                    if isinstance(first_v_item[0], tuple) and len(first_v_item[0]) > 2:
+                                        previous_v_item = lvn_table[first_v_item[0][2]]
+                                        if previous_v_item[0][0] == "const":
+                                            if previous_v_item[0][1] == constants[0]:
+                                                instr["op"] = "id"
+                                                instr["args"] = [lvn_table[first_v_item[0][1]][1]]
+                                                instr.pop("value", None)
+                                elif op == "sub":
+                                    first_v_item = lvn_table[var2index[all_variables[0]]]
+                                    if isinstance(first_v_item[0], tuple) and len(first_v_item[0]) > 2:
+                                        previous_v_item = lvn_table[first_v_item[0][2]]
+                                        if previous_v_item[0][0] == "const":
+                                            if previous_v_item[0][1] == constants[0]:
+                                                instr["op"] = "id"
+                                                instr["args"] = [lvn_table[first_v_item[0][1]][1]]
+                                                instr.pop("value", None)
 
                     if "dest" in instr:
                         var2index[instr["dest"]] = num
