@@ -27,5 +27,5 @@ if __name__ == "__main__":
     for i, func in enumerate(original_program["functions"]):
         if func["name"] == "main":
             original_program["functions"][i]["instrs"] = new_instr
-    with open("{}.opt.json".format(sys.argv[0].split(".")[0]), "w") as outfile:
+    with open("{}.opt.json".format(sys.argv[1].split(".")[0]), "w") as outfile:
         outfile.write(json.dumps(original_program, indent=2))
