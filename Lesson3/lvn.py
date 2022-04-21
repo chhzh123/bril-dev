@@ -189,7 +189,7 @@ def lvn(prg, iterative=False):
                             else:
                                 if op == "add":
                                     first_v_item = lvn_table[var2index[all_variables[0]]]
-                                    if isinstance(first_v_item[0], tuple) and len(first_v_item[0]) > 2:
+                                    if isinstance(first_v_item[0], tuple) and len(first_v_item[0]) > 2 and first_v_item[0][0] == "sub":
                                         previous_v_item = lvn_table[first_v_item[0][2]]
                                         if previous_v_item[0][0] == "const":
                                             if previous_v_item[0][1] == constants[0]:
@@ -198,7 +198,7 @@ def lvn(prg, iterative=False):
                                                 instr.pop("value", None)
                                 elif op == "sub":
                                     first_v_item = lvn_table[var2index[all_variables[0]]]
-                                    if isinstance(first_v_item[0], tuple) and len(first_v_item[0]) > 2:
+                                    if isinstance(first_v_item[0], tuple) and len(first_v_item[0]) > 2 and first_v_item[0][0] == "add":
                                         previous_v_item = lvn_table[first_v_item[0][2]]
                                         if previous_v_item[0][0] == "const":
                                             if previous_v_item[0][1] == constants[0]:
