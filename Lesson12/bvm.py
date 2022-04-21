@@ -73,6 +73,7 @@ class VirtualMachine(object):
         self.flag_trace = False
         self.trace = []
         self.call_ret = []
+        self.instr_count = 0
 
     def eval(self):
         self.flag_trace = True # start from the front
@@ -89,11 +90,13 @@ class VirtualMachine(object):
         self.eval_frame(Frame("main", self.funcs["main"]["instrs"], args))
         self.detect_memory_leak()
         self.print_trace()
+        print("# of instructions:", self.instr_count)
 
     def eval_frame(self, frame) -> None:
         pc = 0
         while pc < len(frame.instrs):
             instr = frame.instrs[pc]
+            self.instr_count += 1
             if self.flag_trace:
                 self.add_instr_to_trace(instr, frame)
             # print(frame.data)
