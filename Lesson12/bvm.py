@@ -243,7 +243,10 @@ class VirtualMachine(object):
 
     def print_trace(self):
         program = {}
-        program["functions"] = [{"instrs": self.trace, "args": self.main["args"], "name": "main"}]
+        if "args" in self.main:
+            program["functions"] = [{"instrs": self.trace, "args": self.main["args"], "name": "main"}]
+        else:
+            program["functions"] = [{"instrs": self.trace, "name": "main"}]
         with open("trace.json", "w") as outfile:
             outfile.write(json.dumps(program, indent=2))
 
