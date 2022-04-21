@@ -45,3 +45,103 @@ After we obtain the trace, we can call the LVN and DCE passes to optimize the it
 
 Finally, we can take the program with optimized trace and reexecute it.
 
+## Testing
+I again took test programs from previous lessons, JIT executed, and observed their performance. For demonstration, I use two cases here.
+
+The first case is the [example](https://www.cs.cornell.edu/courses/cs6120/2022sp/lesson/12/) on the class, which involves function call (interprocedural optimization).
+```
+@f(a: int) :int {
+  one: int = const 1;
+  b: int = sub a one;
+  ret b;
+}
+
+@g(a: int) :int {
+  one: int = const 1;
+  b: int = add a one;
+  ret b;
+}
+
+@main(x: int) {
+  one: int = const 1;
+  y: int = add x one;
+  cst: int = const 100;
+  cond: bool = lt x cst;
+  br cond .true .false;
+.true:
+  z: int = call @f y;
+  jmp .exit;
+.false:
+  z: int = call @g y;
+  jmp .exit;
+.exit:
+  print z;
+}
+```
+
+After the trace is generated, I found it is actually very tricky to do optimization with [LVN](https://github.com/chhzh123/bril-dev/blob/master/Lesson3/lvn.py). Our previous implementation of LVN actually cannot work for this case, since not all the arguments in the instruction are constants. We cannot simply apply constant folding or constant propagation to this case. Some symbolic eqivalance should be supported. For a simple workaround, I extend the LVN pass to let it check the former referenced instruction, and see if the previous one is a complementary instruction （e.g., `add` and `sub`, `mul` and `div`). If so, we further check the second constants are the same. If they add and subtract the same constant, then we replace the latter instruction with an `id` instruction which directly copies the data from the original variable. With DCE, this case can be tackled.
+
+```
+y = x + 1;
+a = y;
+z = a - 1;
+```
+
+Finally, we obtain the main function with optimized trace.
+```
+@main(x: int) {
+  speculate;
+  cst: int = const 100;
+  cond: bool = lt x cst;
+  guard cond .trace_entry;
+  print x;
+  commit;
+  jmp .trace_exit;
+.trace_entry:
+  one: int = const 1;
+  y: int = add x one;
+  cst: int = const 100;
+  cond: bool = lt x cst;
+  br cond .true .false;
+.true:
+  z: int = call @f y;
+  jmp .exit;
+.false:
+  z: int = call @g y;
+  jmp .exit;
+.exit:
+  print z;
+.trace_exit:
+}
+```
+
+The result is shown below. We can see that the two programs indeed generate the same result, and our traced program has less instructions than the original one.
+```bash
+> python3 bvm.py -f test/demo.json 42
+42
+# of instructions: 11
+> python3 bvm.py -f test/demo.opt.json 42
+42
+# of instructions: 7
+```
+
+But tracing the whole program incurs overheads. If we switch to another value no smaller than 100, we may need to speculatively execute the traced code first, and then roll back to the beginning of the program and execute again. So in this case, the number of executed instructions increases.
+```bash
+> python3 bvm.py -f test/demo.json 42
+42
+# of instructions: 11
+> python3 bvm.py -f test/demo.opt.json 100
+102
+# of instructions: 15
+```
+
+The second case involves a loop. The test program can be found [here](https://github.com/chhzh123/bril-dev/blob/master/Lesson12/test/loopcond.json). The traced program is exactly the same as loop unrolling, so no loop overhead is introduced after tracing. The number of instructions is greatly reduced as shown below, which shows the effectiveness of my JIT compiler. However, the downside of this is that the size of the generated program will be large, which can be tackled by changing the starting point of the trace to the beginning of the loop.
+
+```bash
+> python3 bvm.py -f test/loopcond.json
+1984
+# of instructions: 117
+> python3 bvm.py -f test/loopcond.opt.json
+1984
+# of instructions: 79
+```
