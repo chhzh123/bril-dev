@@ -207,9 +207,12 @@ class VirtualMachine(object):
         elif instr["op"] == "br":
             if frame.data[instr["args"][0]]: # true
                 jmp = instr["labels"][1]
+                args = instr["args"]
             else:
                 jmp = instr["labels"][0]
-            new_instr = {"op": "guard", "args": instr["args"], "labels": [jmp]} # false branch
+                args = ["not_cond"]
+                self.trace.append({"op": "not", "dest": "not_cond", "args": instr["args"]})
+            new_instr = {"op": "guard", "args": args, "labels": [jmp]} # false branch
             self.trace.append(new_instr)
         elif instr["op"] == "call": # interprocedural
             func = self.funcs[instr["funcs"][0]]
