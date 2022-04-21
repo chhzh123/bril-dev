@@ -30,25 +30,25 @@ python3 transform.py test/demo.json trace.opt.json
 python3 bvm.py -f test/demo.opt.json 42
 ```
 
-In this task, I continue using my [bril-py](https://github.com/chhzh123/bril-dev/blob/master/Lesson12/bvm.py) interpreter and build a tracing-based JIT on top of it. The main part of my JIT can be viewed [here](https://github.com/chhzh123/bril-dev/blob/master/Lesson12/bvm.py#L210-L242). It is also very easy to add speculative execution support to my interpreter, which only needs to store the original data frame of the program and restore it when the guard function goes false. It takes less than 10 lines of [code](https://github.com/chhzh123/bril-dev/blob/master/Lesson12/bvm.py#L177-L185) to implement.
+In this task, I continue using my [bril-py](https://github.com/chhzh123/bril-dev/blob/master/Lesson12/bvm.py) interpreter and build a tracing-based JIT on top of it. The main part of my JIT can be found [here](https://github.com/chhzh123/bril-dev/blob/master/Lesson12/bvm.py#L210-L242). It is also very easy to add speculative execution support to my interpreter, which only needs to store the original data frame of the program and restore it when the guard function goes false. It takes less than 10 lines of [code](https://github.com/chhzh123/bril-dev/blob/master/Lesson12/bvm.py#L177-L185) to implement.
 
 
 ## Tracing-Based JIT
-I simply begin tracing from the begining of the program and add instructions to the trace based on which operation the JIT meets:
-* For `jmp`, we simply eliminate it, since we only generate a straight-line code.
+I simply start tracing from the beginning of the program and add instructions to the trace based on which operation the JIT meets:
+* For `jmp`, we simply eliminate it, since we only generate straight-line codes.
 * For `br`, we need to add a `guard` instruction to the trace, but the condition should be reverted first if we take the false branch, which means a `not` instruction is needed before the `guard` one.
-* For `call`, the procedure is similar to function inlining (which I've done in [Lesson 2](https://github.com/sampsyo/cs6120/discussions/263#discussioncomment-2101320)). In the beginning, the arguments should be copied from the caller function using `id`, and the variables inside the callee function need to be renamed. There is no `call` instructions in the trace, and those code inside the function will be flatten into straight-line code.
-* For `ret`, we use `id` to copy the return value back to the caller function. These redundant instructions will be eliminated by further DCE pass.
+* For `call`, the procedure is similar to function inlining (which I've done in [Lesson 2](https://github.com/sampsyo/cs6120/discussions/263#discussioncomment-2101320)). In the beginning, the arguments should be copied from the caller function using `id`, and the variables inside the callee function need to be renamed. There are no `call` instructions in the trace, and the code inside the function will be flattened into straight-line codes.
+* For `ret`, we use `id` to copy the return value back to the caller function. These redundant instructions will be eliminated by a future DCE pass.
 * All other instructions are directly added to the trace.
 
-After we obtain the trace, we can call the LVN and DCE passes to optimize the it. I then provide a [tranform.py](https://github.com/chhzh123/bril-dev/blob/master/Lesson12/transform.py) script to insert the trace back to the original program and add speculative markers to it. Since I trace the whole program, the whole trace can be directly put in front of the program. `guard`'s exit will become the begin of the orginal program, and the next instruction of `commit` should be `jmp` to the end of the original program.
+After we obtain the trace, we can call the LVN and DCE passes to optimize it. I then provide a [tranform.py](https://github.com/chhzh123/bril-dev/blob/master/Lesson12/transform.py) script to insert the trace back to the original program and add speculative markers to it. Since I trace the whole program, the whole trace can be directly put in front of the program. `guard`'s exit will become the beginning of the original program, and the next instruction of `commit` should be `jmp` to the end of the original program.
 
-Finally, we can take the program with optimized trace and reexecute it.
+Finally, we can take the program with optimized trace and re-execute it.
 
 ## Testing
-I again took test programs from previous lessons, JIT executed, and observed their performance. For demonstration, I use two cases here.
+I again took several test programs from previous lessons, JIT executed, and observed their performance. For demonstration, I only use two test cases here.
 
-The first case is the [example](https://www.cs.cornell.edu/courses/cs6120/2022sp/lesson/12/) on the class, which involves function call (interprocedural optimization).
+The first case is the [example](https://www.cs.cornell.edu/courses/cs6120/2022sp/lesson/12/) on the class, which involves function calls (interprocedural optimization).
 ```
 @f(a: int) :int {
   one: int = const 1;
@@ -79,7 +79,7 @@ The first case is the [example](https://www.cs.cornell.edu/courses/cs6120/2022sp
 }
 ```
 
-After the trace is generated, I found it is actually very tricky to do optimization with [LVN](https://github.com/chhzh123/bril-dev/blob/master/Lesson3/lvn.py). Our previous implementation of LVN actually cannot work for this case, since not all the arguments in the instruction are constants. We cannot simply apply constant folding or constant propagation to this case. Some symbolic eqivalance should be supported. For a simple workaround, I extend the LVN pass to let it check the former referenced instruction, and see if the previous one is a complementary instruction （e.g., `add` and `sub`, `mul` and `div`). If so, we further check the second constants are the same. If they add and subtract the same constant, then we replace the latter instruction with an `id` instruction which directly copies the data from the original variable. With DCE, this case can be tackled.
+After the trace was generated, I found it was very tricky to do optimization with [LVN](https://github.com/chhzh123/bril-dev/blob/master/Lesson3/lvn.py). Our previous implementation of LVN actually cannot work for this case, since not all the arguments in the instruction are constants. We cannot simply apply constant folding or constant propagation to this case. Some symbolic equivalence testing should be supported. For a simple workaround, I extend the LVN pass to let it check the former referenced instruction, and see if the previous one is a complementary instruction（e.g., `add` and `sub`, `mul` and `div`). If so, we further check if the second constants are the same. If they add and subtract the same constant, then we replace the latter instruction with an `id` instruction which directly copies the data from the original variable. With DCE, this case can be later eliminated.
 
 ```
 y = x + 1;
@@ -87,7 +87,7 @@ a = y;
 z = a - 1;
 ```
 
-Finally, we obtain the main function with optimized trace.
+Finally, we obtain the program with optimized trace.
 ```
 @main(x: int) {
   speculate;
@@ -115,7 +115,7 @@ Finally, we obtain the main function with optimized trace.
 }
 ```
 
-The result is shown below. We can see that the two programs indeed generate the same result, and our traced program has less instructions than the original one.
+The result is shown below. We can see that the two programs indeed generate the same result, and our traced program has fewer instructions than the original one.
 ```bash
 > python3 bvm.py -f test/demo.json 42
 42
@@ -135,7 +135,7 @@ But tracing the whole program incurs overheads. If we switch to another value no
 # of instructions: 15
 ```
 
-The second case involves a loop. The test program can be found [here](https://github.com/chhzh123/bril-dev/blob/master/Lesson12/test/loopcond.json). The traced program is exactly the same as loop unrolling, so no loop overhead is introduced after tracing. The number of instructions is greatly reduced as shown below, which shows the effectiveness of my JIT compiler. However, the downside of this is that the size of the generated program will be large, which can be tackled by changing the starting point of the trace to the beginning of the loop.
+The second case involves a loop. The test program can be found [here](https://github.com/chhzh123/bril-dev/blob/master/Lesson12/test/loopcond.json). The traced program is exactly the same as loop unrolling, so no loop overhead is introduced after tracing. The number of instructions is greatly reduced as shown below, which shows the effectiveness of my JIT compiler. However, the downside of this is that the size of the generated program will be large, but it can be tackled by changing the starting point of the trace to the beginning of the loop.
 
 ```bash
 > python3 bvm.py -f test/loopcond.json
