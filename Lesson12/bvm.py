@@ -21,6 +21,12 @@ class Frame(object):
     def eval_const(self, instr) -> None:
         self.data[instr["dest"]] = instr["value"]
 
+    def eval_unary_op(self, instr) -> None:
+        if instr["op"] == "neg":
+            self.data[instr["dest"]] = -self.data[instr["args"][0]]
+        elif instr["op"] == "not":
+            self.data[instr["dest"]] = ~self.data[instr["args"][0]]
+
     def eval_binary_op(self, instr) -> None:
         if instr["op"] == "add":
             self.data[instr["dest"]] = self.data[instr["args"][0]] + self.data[instr["args"][1]]
@@ -96,7 +102,6 @@ class VirtualMachine(object):
         pc = 0
         while pc < len(frame.instrs):
             instr = frame.instrs[pc]
-            self.instr_count += 1
             if self.flag_trace:
                 self.add_instr_to_trace(instr, frame)
             # print(frame.data)
@@ -105,12 +110,15 @@ class VirtualMachine(object):
             if "label" in instr:
                 continue
             elif "op" in instr:
+                self.instr_count += 1
                 if instr["op"] == "const":
                     frame.eval_const(instr)
                 elif instr["op"] == "id":
                     frame.data[instr["dest"]] = frame.data[instr["args"][0]]
                     if instr["args"][0] in self.allocated:
                         self.reference_count[instr["args"][0]] += 1
+                elif instr["op"] in ["neg", "not"]:
+                    frame.eval_unary_op(instr)
                 elif instr["op"] in ["add", "sub", "mul", "div", "or", "and"]:
                     frame.eval_binary_op(instr)
                 elif instr["op"] in ["lt", "gt", "eq", "ne", "le", "ge"]:
