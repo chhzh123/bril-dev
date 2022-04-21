@@ -94,7 +94,7 @@ class VirtualMachine(object):
                     raise RuntimeError("Not supported types")
                 args[arg["name"]] = val
         self.eval_frame(Frame("main", self.funcs["main"]["instrs"], args))
-        self.detect_memory_leak()
+        # self.detect_memory_leak()
         self.print_trace()
         print("# of instructions:", self.instr_count)
 
@@ -227,11 +227,17 @@ class VirtualMachine(object):
             for i, arg in enumerate(instr["args"]):
                 new_instr = {"op": "id", "dest": func["args"][i]["name"], "args": [arg], "type": func["args"][i]["type"]}
                 self.trace.append(new_instr)
-            self.call_ret.append((instr["dest"], instr["type"]))
+            if "dest" in instr:
+                self.call_ret.append((instr["dest"], instr["type"]))
+            else:
+                self.call_ret.append(None)
         elif instr["op"] == "ret":
-            new_instr = {"op": "id", "dest": self.call_ret[-1][0], "args": [instr["args"][0]], "type": self.call_ret[-1][1]}
-            self.call_ret.pop()
-            self.trace.append(new_instr)
+            if self.call_ret[-1] == None:
+                self.call_ret.pop()
+            else:
+                new_instr = {"op": "id", "dest": self.call_ret[-1][0], "args": [instr["args"][0]], "type": self.call_ret[-1][1]}
+                self.call_ret.pop()
+                self.trace.append(new_instr)
         else:
             self.trace.append(instr)
 
