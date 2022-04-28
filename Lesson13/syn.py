@@ -149,14 +149,16 @@ def z3_expr(tree, vars=None):
 def construct_subexpr():
     sym_expr = 1
     str_expr = ""
+    sym_vars = []
     for i in range(max_exp):
         var0 = "h{}".format(i*2)
         var1 = "h{}".format(i*2+1)
         str_expr += " {} ({} * x + {})".format("*" if i != 0 else "", var0, var1)
         var0 = z3.Int(var0)
         var1 = z3.Int(var1)
+        sym_vars.append(var0)
         sym_expr *= var0 * z3.Int("x") + var1
-    return str_expr, sym_expr
+    return str_expr, sym_expr, sym_vars
 
 
 def solve(phi):
@@ -186,7 +188,7 @@ def synthesize(tree):
     """
 
     expr, vars = z3_expr(tree)
-    str_expr, sym_expr = construct_subexpr()
+    str_expr, sym_expr, sym_vars = construct_subexpr()
 
     # Filter out the variables starting with "h" to get the non-hole
     # variables.
@@ -199,8 +201,10 @@ def synthesize(tree):
         expr == sym_expr,  # ...the two expressions produce equal results.
     )
 
+    constraints = [var > 0 for var in sym_vars]
+
     # Solve the constraint.
-    return str_expr, solve(goal)
+    return str_expr, solve([goal] + constraints)
 
 
 def factorize(source):
