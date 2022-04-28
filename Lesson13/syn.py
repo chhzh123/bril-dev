@@ -15,6 +15,7 @@ GRAMMAR = """
   | term "/"  item      -> div
   | term ">>" item      -> shr
   | term "<<" item      -> shl
+  | term "^" item       -> pow
 ?item: NUMBER           -> num
   | "-" item            -> neg
   | CNAME               -> var
@@ -33,7 +34,7 @@ def interp(tree, lookup):
     """
 
     op = tree.data
-    if op in ('add', 'sub', 'mul', 'div', 'shl', 'shr'):  # Binary operators.
+    if op in ('add', 'sub', 'mul', 'div', 'shl', 'shr', 'pow'):  # Binary operators.
         lhs = interp(tree.children[0], lookup)
         rhs = interp(tree.children[1], lookup)
         if op == 'add':
@@ -48,6 +49,8 @@ def interp(tree, lookup):
             return lhs << rhs
         elif op == 'shr':
             return lhs >> rhs
+        elif op == 'pow':
+            return lhs ** rhs
     elif op == 'neg':  # Negation.
         sub = interp(tree.children[0], lookup)
         return -sub
@@ -77,7 +80,7 @@ def pretty(tree, subst={}, paren=False):
             return s
 
     op = tree.data
-    if op in ('add', 'sub', 'mul', 'div', 'shl', 'shr'):
+    if op in ('add', 'sub', 'mul', 'div', 'shl', 'shr', 'pow'):
         lhs = pretty(tree.children[0], subst, True)
         rhs = pretty(tree.children[1], subst, True)
         c = {
@@ -87,6 +90,7 @@ def pretty(tree, subst={}, paren=False):
             'div': '/',
             'shl': '<<',
             'shr': '>>',
+            'pow': '^'
         }[op]
         return par('{} {} {}'.format(lhs, c, rhs))
     elif op == 'neg':
@@ -127,7 +131,9 @@ def z3_expr(tree, vars=None):
         if name in vars:
             return vars[name]
         else:
-            v = z3.BitVec(name, 8)
+            # v = z3.BitVec(name, 8)
+            v = z3.Int(name)
+            # v = z3.Real(name)
             vars[name] = v
             return v
 
