@@ -27,11 +27,15 @@ GRAMMAR = """
 """.strip()
 
 
+max_exp = 0
+
+
 def interp(tree, lookup):
     """Evaluate the arithmetic expression.
     Pass a tree as a Lark `Tree` object for the parsed expression. For
     `lookup`, provide a function for mapping variable names to values.
     """
+    global max_exp
 
     op = tree.data
     if op in ('add', 'sub', 'mul', 'div', 'shl', 'shr', 'pow'):  # Binary operators.
@@ -50,6 +54,8 @@ def interp(tree, lookup):
         elif op == 'shr':
             return lhs >> rhs
         elif op == 'pow':
+            if isinstance(rhs, int):
+                max_exp = rhs
             return lhs ** rhs
     elif op == 'neg':  # Negation.
         sub = interp(tree.children[0], lookup)
@@ -140,6 +146,19 @@ def z3_expr(tree, vars=None):
     return interp(tree, get_var), vars
 
 
+def construct_subexpr():
+    sym_expr = 1
+    str_expr = ""
+    for i in range(max_exp):
+        var0 = "h{}".format(i*2)
+        var1 = "h{}".format(i*2+1)
+        str_expr += " {} ({} * x + {})".format("*" if i != 0 else "", var0, var1)
+        var0 = z3.Int(var0)
+        var1 = z3.Int(var1)
+        sym_expr *= var0 * z3.Int("x") + var1
+    return str_expr, sym_expr
+
+
 def solve(phi):
     """Solve a Z3 expression, returning the model.
     """
@@ -159,42 +178,42 @@ def model_values(model):
     }
 
 
-def synthesize(tree1, tree2):
+def synthesize(tree):
     """Given two programs, synthesize the values for holes that make
     them equal.
     `tree1` has no holes. In `tree2`, every variable beginning with the
     letter "h" is considered a hole.
     """
 
-    expr1, vars1 = z3_expr(tree1)
-    expr2, vars2 = z3_expr(tree2, vars1)
+    expr, vars = z3_expr(tree)
+    str_expr, sym_expr = construct_subexpr()
 
     # Filter out the variables starting with "h" to get the non-hole
     # variables.
-    plain_vars = {k: v for k, v in vars1.items()
+    plain_vars = {k: v for k, v in vars.items()
                   if not k.startswith('h')}
 
     # Formulate the constraint for Z3.
     goal = z3.ForAll(
         list(plain_vars.values()),  # For every valuation of variables...
-        expr1 == expr2,  # ...the two expressions produce equal results.
+        expr == sym_expr,  # ...the two expressions produce equal results.
     )
 
     # Solve the constraint.
-    return solve(goal)
+    return str_expr, solve(goal)
 
 
-def ex2(source):
-    src1, src2 = source.strip().split('\n')
+def factorize(source):
+    src1 = source.strip()
 
     parser = lark.Lark(GRAMMAR)
-    tree1 = parser.parse(src1)
-    tree2 = parser.parse(src2)
+    tree = parser.parse(src1)
 
-    model = synthesize(tree1, tree2)
-    print(pretty(tree1))
+    src2, model = synthesize(tree)
+    tree2 = parser.parse(src2)
+    print(pretty(tree))
     print(pretty(tree2, model_values(model)))
 
 
 if __name__ == '__main__':
-    ex2(sys.stdin.read())
+    factorize(sys.stdin.read())
