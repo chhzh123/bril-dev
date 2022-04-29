@@ -55,7 +55,7 @@ def interp(tree, lookup):
             return lhs >> rhs
         elif op == 'pow':
             if isinstance(rhs, int):
-                max_exp = rhs
+                max_exp = max(max_exp, rhs)
             return lhs ** rhs
     elif op == 'neg':  # Negation.
         sub = interp(tree.children[0], lookup)
