@@ -10,7 +10,7 @@ python3 syn.py sketches/s1.txt
 
 In this task, I implemented a simple solver for polynomial factoring on the integer set ![Z](https://render.githubusercontent.com/render/math?math=\mathbb{Z}). The code is [here](https://github.com/chhzh123/bril-dev/blob/master/Lesson13/syn.py), which partly reuses the [Ex2](https://github.com/sampsyo/minisynth/blob/master/ex2.py) program.
 
-Firstly I added power support (`a^b`) to that simple language, so that the users can type the polynomial they want to factorize in a text file. The key idea is that considering the following polynomial,
+Firstly I added power support (`a^b`) to the language, so that the users can type the polynomial they want to factorize in a text file. We can consider the following polynomial,
 ![poly](https://render.githubusercontent.com/render/math?math=f(x)=a_nx^n%2Ba_{n-1}x^{n-1}%2B\cdots%2Ba_0),
 if
 ![poly](https://render.githubusercontent.com/render/math?math=\forall{r},f(r)=0\implies{r\in\mathbb{R}}),
@@ -22,7 +22,7 @@ After my synthesizer reads in the original polynomial, it will automatically con
 
 Since I used `^` as the power operator in the language, but for Python `^` represents XOR, we need to add paratheses to ensure the precedence relationship is correct. (I spent lots of time debugging here :(
 
-Finally the synthesizer works as expected. I show two non-trivial examples below, both of them show the correctness of my synthesizer. However, when the exponent term goes larger than 4, it takes more than one hour to get the solution.
+Finally the synthesizer works as expected. I show two non-trivial examples below, both of which prove the correctness of my synthesizer. However, when the exponent term is greater than 3, it has already taken more than 20 minutes to get the solution on my M1 MacBook.
 
 ```cpp
 // example 1
@@ -33,4 +33,4 @@ Finally the synthesizer works as expected. I show two non-trivial examples below
 ((((1 * x) + 1) * ((1 * x) + -2)) * ((1 * x) + 5)) * ((1 * x) + -3)
 ```
 
-Actually in the first place I wanted to implement the general factorization algorithm as the one in [Mathematica](https://reference.wolfram.com/language/ref/Factor.html.en?source=footer), but it would be complex when the roots of the polynomial are in complex space ![c](https://render.githubusercontent.com/render/math?math=\mathbb{C}). Since Z3 is actually not a general symbolic solver, the search space is too large for it to deal with more complex factorization problem.
+In the first place I wanted to implement the general factorization algorithm as the one shown in [Mathematica](https://reference.wolfram.com/language/ref/Factor.html.en?source=footer), but it becomes very complicated when the roots of the polynomial are in complex space ![c](https://render.githubusercontent.com/render/math?math=\mathbb{C}). Since Z3 is actually not a general symbolic solver, the search space is too large for it to deal with more complex factorization problem.
